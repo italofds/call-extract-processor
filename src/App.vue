@@ -12,7 +12,7 @@
 						<a class="text-light align-middle d-sm-inline d-none" href="https://github.com/italofds" target="_blank">italofds</a>
 						<span class="text-secondary align-middle d-sm-inline d-none"> / </span>
 						<a class="text-light align-middle" href="https://github.com/italofds/call-extract-processor" target="_blank">call-extract-processor</a>
-						<span class="badge rounded-pill text-bg-secondary align-middle ms-3" style="font-size:10pt;"><small>v1.0.0</small></span>
+						<span class="badge rounded-pill text-bg-secondary align-middle ms-3" style="font-size:10pt;"><small>BETA</small></span>
 					</div>
 				</div>
 
@@ -164,42 +164,36 @@
 
 								<div class="col-12 d-grid d-lg-block dropdown">
 									<button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-										Ordenar
-									</button>
-									<ul class="dropdown-menu">
-										<li><a class="dropdown-item" href="#">Mais recente</a></li>
-										<li><a class="dropdown-item" href="#">Mais antigo</a></li>
-									</ul>
-								</div>
-
-								<div class="col-12 d-grid d-lg-block dropdown">
-									<button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
 										Mais Opções
 									</button>
-									<ul class="dropdown-menu">
-										<li><button type="button" class="dropdown-item">Exibir/Esconder todas ERB's</button></li>
-										<li><button type="button" class="dropdown-item">Exibir/Esconder ERB's Alvo</button></li>
-										<li><button type="button" class="dropdown-item">Exibir/Esconder ERB's Interlocutor</button></li>
-										<li><button type="button" class="dropdown-item" @click="toggleHeatmap">Exibir/Esconder Mapa de Calor</button></li>
+									<ul class="dropdown-menu z-3">
+										<li><button type="button" class="dropdown-item" @click="toggleLocation1Visibility">{{map.isLocation1Visible ? 'Ocultar' : 'Exibir'}} Todos Alvos</button></li>
+										<li><button type="button" class="dropdown-item" @click="toggleLocation2Visibility">{{map.isLocation2Visible ? 'Ocultar' : 'Exibir'}} Todos Interlocutor</button></li>
+										<!-- <li><button type="button" class="dropdown-item" @click="toggleHeatmap">Exibir/Esconder Mapa de Calor</button></li> -->
 									</ul>
 								</div>
 							</div>
-						</div>
+						</div>							
 
-						<div class="flex-fill overflow-auto p-3 bg-body-tertiary">
-							<div v-for="(callBlock, index1) in finalCallList" :key="index1">
+						<div id="call-list" class="flex-fill overflow-auto p-3 bg-body-tertiary" :onscroll="updateScroll">
+							<div v-if="currentSection" class="position-sticky z-2 d-flex justify-content-center" style="top:0;">
+								<div class="badge rounded-pill text-bg-dark opacity-75">{{ this.currentSection }}</div>
+							</div>						
+
+							<section :id="'group' + index1" v-for="(callBlock, index1) in finalCallList" :key="index1">
 								<div class="text-muted pb-3">
 									<small>{{ formatDate(callBlock.date, "dddd, DD [de] MMMM [de] YYYY") }}</small>
 								</div>
 
 								<div class="list-group mb-3">
 									<call-component v-for="(call, index2) in callBlock.calls" 
-										:id="'callComponent_'+index1+'_'+index2"
-										:_id="'callComponent_'+index1+'_'+index2"
+										:id="'call_'+index1+'_'+index2"
+										:_id="'call_'+index1+'_'+index2"
 										:key="index2"
-										:call-data="call"></call-component>
+										:call-data="call"
+										@position-refreshed="refreshMapPosition"></call-component>
 								</div>
-							</div>
+							</section>							
 						</div>
 					</div>
 				</div>				
@@ -262,6 +256,8 @@ export default {
 			callListByTarget: [],
 			callListByDate: [],
 			finalCallList: [],
+			currentSection: null,
+			myMapRef: null,
 			map: {
 				isHeatmap: false,
 				heatmapOptions: {
@@ -300,13 +296,15 @@ export default {
 					strokeColor: "#00ff00",
 					strokeOpacity: 0.5,
 					strokeWeight: 1,
-				}
+				},
+				isLocation1Visible: true,
+				isLocation2Visible: true
+
 			},
 			graphData: {
 				telCounts: [],
 				imeiCounts: []
-			},
-			geometryApi: undefined
+			}
 		};
 	},
 	methods: {
@@ -330,8 +328,7 @@ export default {
 					this.callList = fileProcess(e.target.result);
 					this.generateGraphData();	
 					this.findTarget();
-					this.generateFinalCallList();
-					
+					this.generateFinalCallList();					
 				}; 
 				reader.readAsArrayBuffer(file);
 			}
@@ -399,10 +396,11 @@ export default {
 					newCallObj.location2Visible = newCallObj.location2 ? true : false;
 
 					groupedCallsByTarget.push(newCallObj);
-				});
+				});				
 
 				const groupedCallByDate = {};
 				
+				groupedCallsByTarget.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 				groupedCallsByTarget.forEach(call => {
 					let date = new Date(call.timestamp).toISOString().split('T')[0];
 					if (!groupedCallByDate[date]) {
@@ -411,14 +409,12 @@ export default {
 					groupedCallByDate[date].push(call);
 				});
 
-				const finalCallList = Object.keys(groupedCallByDate).map(date => {
+				this.finalCallList = Object.keys(groupedCallByDate).map(date => {
 					return {
 						date: date,
 						calls: groupedCallByDate[date]
 					};
 				});
-				
-				this.finalCallList = finalCallList.sort((a, b) => new Date(a.date) - new Date(b.date));
 			}	
 		},
 		getAzimuthPaths(locationAttr) {
@@ -444,6 +440,27 @@ export default {
 			});	
 				
 			return resultList;
+		},
+		changeVisibility(locationAttr, visibility) {			
+			this.finalCallList.forEach(group => {
+				group.calls.forEach(call => {
+					if(locationAttr) {
+						call[locationAttr + "Visible"] = visibility;
+					} else {
+						call["location1Visible"] = visibility;
+						call["location2Visible"] = visibility;
+					}
+					
+				});
+			});	
+		},
+		toggleLocation1Visibility() {
+			this.map.isLocation1Visible = !this.map.isLocation1Visible;			
+			this.changeVisibility('location1', this.map.isLocation1Visible);
+		},
+		toggleLocation2Visibility() {
+			this.map.isLocation2Visible = !this.map.isLocation2Visible;			
+			this.changeVisibility('location2', this.map.isLocation2Visible);
 		},
 		getErbPositions(locationAttr) {
 			var groupedObject = {};
@@ -495,6 +512,37 @@ export default {
 		},
 		toggleHeatmap() {
 			this.map.isHeatmap = !this.map.isHeatmap;
+		},
+		refreshMapPosition(positions) { 
+			if(positions && positions.length == 1) {
+				this.myMapRef.setCenter(positions[0]);
+			
+			} else {
+				var bounds = new window.google.maps.LatLngBounds();
+				positions.forEach(position => {
+					var latLng = new window.google.maps.LatLng(position.lat, position.lng);
+					bounds.extend(latLng);
+				});
+				this.myMapRef.fitBounds(bounds);	
+			}					
+		},
+		updateScroll() {
+			var callList = document.querySelector("#call-list");			
+			const callListRect = callList.getBoundingClientRect();
+			var sections = callList.querySelectorAll("section");
+
+			if(callList.scrollTop > 50) {
+				for (let i = 0; i < sections.length; i++) {
+					const rect = sections[i].getBoundingClientRect();
+					if(rect.bottom > callListRect.top && rect.top < callListRect.bottom) {
+						this.currentSection = sections[i].querySelector("div > small").innerText;
+						break;
+					}
+				}
+				
+			} else {
+				this.currentSection = "";
+			}
 		}
 	},
 	computed: {
@@ -561,6 +609,10 @@ export default {
 		}
 	},
 	mounted() {
+		this.$refs.myMapRef.$mapPromise.then((map) => {
+			this.myMapRef = map;
+		});
+		
 		if(document.documentElement.getAttribute("data-bs-theme") === "dark"){
 			this.map.options.styles = darkMapStyleJSON;
 		}

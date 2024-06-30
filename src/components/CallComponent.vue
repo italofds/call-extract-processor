@@ -12,7 +12,8 @@
             
             <div class="d-flex flex-row align-items-center" style="min-width: 185px;">
                 <div class="me-2">
-                    <input type="checkbox" class="btn-check" :id="checkId1" v-model="call.location1Visible" :disabled="!callData.location1">
+                    <input v-if="callData.location1" type="checkbox" class="btn-check" :id="checkId1" v-model="call.location1Visible" @change="emitPositionRefreshed(callData, 'location1')">
+                    <input v-if="!callData.location1" type="checkbox" class="btn-check" :id="checkId1" disabled>
                     <label :class="'btn rounded-circle ' + (callData.location1 ? 'btn-outline-primary' : 'btn-outline-secondary')" :for="checkId1">
                         <i :class="'bi ' + (callData.location1 ? 'bi-broadcast-pin' : 'bi-x-lg')"></i>
                     </label>
@@ -30,7 +31,8 @@
 
             <div class="d-flex flex-row align-items-center" style="min-width: 180px;">
                 <div class="me-2">
-                    <input type="checkbox" class="btn-check" :id="checkId2" v-model="call.location2Visible" :disabled="!callData.location2">
+                    <input v-if="callData.location2" type="checkbox" class="btn-check" :id="checkId2" v-model="call.location2Visible" @change="emitPositionRefreshed(callData, 'location2')">
+                    <input v-if="!callData.location2" type="checkbox" class="btn-check" :id="checkId2" disabled>
                     <label :class="'btn rounded-circle ' + (callData.location2 ? 'btn-outline-warning' : 'btn-outline-secondary')" :for="checkId2">
                         <i :class="'bi ' + (callData.location2 ? 'bi-broadcast-pin' : 'bi-x-lg')"></i>
                     </label>
@@ -64,6 +66,7 @@ export default {
         _id: null,
         callData: null
     },
+    emits: ['positionRefreshed'],
     data () {
         return {
             checkId1: null,
@@ -77,7 +80,13 @@ export default {
     },
     methods: {
         formatPhoneNumber,
-        formatDate
+        formatDate,
+        emitPositionRefreshed(data, locationAttr) {
+            //only emits if the visibility is changed to visible
+            if(data[locationAttr+"Visible"]) {
+                this.$emit('positionRefreshed',  data[locationAttr]);
+            }            
+        }
     }
 };
 </script>
