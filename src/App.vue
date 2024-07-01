@@ -147,7 +147,7 @@
 							</li>
 						</ul>
 						
-						<div class="px-3 py-2 border-bottom shadow-sm z-1">
+						<div class="px-3 py-2 border-bottom shadow-sm z-2">
 							<label class="form-label">Controles</label>
 							
 							<div class="row row-cols-lg-auto g-3 mb-3">
@@ -156,7 +156,7 @@
 										<button type="button" class="btn btn-outline-secondary position-relative" disabled>
 											Limpar Filtros
 										</button>
-										<button type="button" class="btn btn-outline-secondary position-relative" data-bs-toggle="modal" data-bs-target="#exampleModal">
+										<button type="button" class="btn btn-outline-secondary position-relative" data-bs-toggle="modal" data-bs-target="#filterModal">
 											Filtrar
 										</button>
 									</div>										
@@ -169,20 +169,18 @@
 									<ul class="dropdown-menu z-3">
 										<li><button type="button" class="dropdown-item" @click="toggleLocation1Visibility">{{map.isLocation1Visible ? 'Ocultar' : 'Exibir'}} Todos Alvos</button></li>
 										<li><button type="button" class="dropdown-item" @click="toggleLocation2Visibility">{{map.isLocation2Visible ? 'Ocultar' : 'Exibir'}} Todos Interlocutor</button></li>
-										<!-- <li><button type="button" class="dropdown-item" @click="toggleHeatmap">Exibir/Esconder Mapa de Calor</button></li> -->
+										<li><button type="button" class="dropdown-item" @click="toggleHeatmap">Mapa de Calor</button></li>
 									</ul>
 								</div>
 							</div>
 						</div>							
 
-						<div id="call-list" class="flex-fill overflow-auto p-3 bg-body-tertiary" :onscroll="updateScroll">
-							<div v-if="currentSection" class="position-sticky z-2 d-flex justify-content-center" style="top:0;">
-								<div class="badge rounded-pill text-bg-dark opacity-75">{{ this.currentSection }}</div>
-							</div>						
-
+						<div id="call-list" class="flex-fill overflow-auto p-3 bg-body-tertiary z-1">
 							<section :id="'group' + index1" v-for="(callBlock, index1) in finalCallList" :key="index1">
-								<div class="text-muted pb-3">
-									<small>{{ formatDate(callBlock.date, "dddd, DD [de] MMMM [de] YYYY") }}</small>
+								<div class="mb-3 d-flex justify-content-center position-sticky z-3" style="top:0;">
+									<small class="badge rounded-pill text-bg-secondary opacity-75">
+										{{formatDate(callBlock.date, "dddd, DD [de] MMMM [de] YYYY") }}
+									</small>
 								</div>
 
 								<div class="list-group mb-3">
@@ -229,6 +227,7 @@
 		</footer>
 	</div>
 	
+	<filter-component></filter-component>
 </template>
 
 <script>
@@ -237,13 +236,15 @@ import { formatDate, formatPhoneNumber } from '@/utils/utils.js';
 import darkMapStyleJSON from '../assets/dark-map-style.json'
 import '../assets/js/color-modes.js'
 import CallComponent from './components/CallComponent.vue';
+import FilterComponent from './components/FilterComponent.vue';
 
 const AZIMUTH_ANGLE = 90;
 const AZIMUTH_RADIUS = 1200;
 
 export default {
 	components: {
-		CallComponent
+		CallComponent,
+		FilterComponent
 	},
 	name: 'App',
 	data() {
@@ -496,10 +497,13 @@ export default {
 				obj.location = new window.google.maps.LatLng(erbLocation.position.lat, erbLocation.position.lng);
 				obj.weight = erbLocation.count;
 				finalList.push(obj);
-			});
+			});			
 			
-			finalList = finalList.sort((a, b) => b.weight - a.weight);
-			this.map.heatmapOptions.maxIntensity = finalList[0].weight/2;
+			if(finalList && finalList.length > 0) {
+				finalList = finalList.sort((a, b) => b.weight - a.weight);
+				this.map.heatmapOptions.maxIntensity = finalList[0].weight/2;
+			}
+			
 			return finalList;
 		},
 		openMarker1(id) {
@@ -525,24 +529,6 @@ export default {
 				});
 				this.myMapRef.fitBounds(bounds);	
 			}					
-		},
-		updateScroll() {
-			var callList = document.querySelector("#call-list");			
-			const callListRect = callList.getBoundingClientRect();
-			var sections = callList.querySelectorAll("section");
-
-			if(callList.scrollTop > 50) {
-				for (let i = 0; i < sections.length; i++) {
-					const rect = sections[i].getBoundingClientRect();
-					if(rect.bottom > callListRect.top && rect.top < callListRect.bottom) {
-						this.currentSection = sections[i].querySelector("div > small").innerText;
-						break;
-					}
-				}
-				
-			} else {
-				this.currentSection = "";
-			}
 		}
 	},
 	computed: {
