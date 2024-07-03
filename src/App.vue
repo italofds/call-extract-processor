@@ -3,7 +3,7 @@
 		<header class="navbar navbar-expand navbar-dark bg-dark shadow flex-shrink-0 z-2">
 			<div class="container-fluid">
 				<div>
-					<button v-if="targetList.length == 1" class="navbar-toggle btn btn-dark d-inline-block me-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggleExternalContent" aria-controls="navbarToggleExternalContent" aria-expanded="false" aria-label="Toggle navigation">
+					<button v-if="target" class="navbar-toggle btn btn-dark d-inline-block me-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggleExternalContent" aria-controls="navbarToggleExternalContent" aria-expanded="false" aria-label="Toggle navigation">
 						<span class="navbar-toggler-icon"></span>
 					</button>
 
@@ -68,9 +68,9 @@
 		</header>
 
 		<main id="start" class="flex-grow-1 overflow-auto position-relative">
-			<div class="cover d-flex align-items-center"  v-if="targetList.length != 1">
+			<div class="cover d-flex align-items-center"  v-if="!target">
 
-				<div class="container text-center text-light" v-if="targetList.length == 0">
+				<div class="container text-center text-light" v-if="!possibleTargetList">
 					<h1 class="mb-3">Processador de Extrato de Chamadas</h1>
 					<div class="lead col-lg-6 mx-auto mb-5">
 						<p>Ferramenta de processamento de chamadas projetado para as empresas Vivo, Claro e Tim, que tem como objetivo apresentar um resultado mais amigável ao usuário a partir do arquivo Excel do extrato das chamadas. Esta ferramenta exibe as localizações aproximadas de cada ligação, permitindo uma análise mais clara e detalhada das comunicações realizadas pelo alvo.</p>
@@ -83,10 +83,10 @@
 					</form>
 				</div>
 
-				<div class="modal position-static d-block" v-if="targetList.length > 1">
+				<div class="modal position-static d-block" v-if="possibleTargetList">
 					<div class="modal-dialog modal-dialog-centered">
 						<div class="modal-content">
-							<div class="modal-header">
+							<div class="modal-header bg-body-tertiary">
 								<h5 class="modal-title">Selecionar Alvo</h5>
 							</div>
 							<div class="modal-body">
@@ -97,13 +97,13 @@
 								<p>A identificação do alvo é fundamental para organizar a lista de chamadas de acordo com o foco específico.</p>
 								<p><strong>Selecione qual dos telefones ou IMEI's é o alvo correto:</strong></p>
 								
-								<label v-for="target in targetList" :key="target" class="border bg-body-tertiary p-2 mb-1 rounded w-100">
-									<input class="me-3" type="radio" :value="target" v-model="selectedTarget">
+								<label v-for="target in possibleTargetList" :key="target" class="border bg-body-tertiary p-2 mb-1 rounded w-100">
+									<input class="me-3" type="radio" :value="target" v-model="form.selectedTarget">
 									<strong>{{ target.type == 'tel' ? 'Telefone' : 'IMEI' }}:</strong> {{ target.type == 'tel' ? formatPhoneNumber(target.value) : target.value}}
 								</label>
 							</div>
-							<div class="modal-footer">
-								<button @click="targetSelect" type="button" class="btn btn-primary" :disabled="!selectedTarget">Abrir</button>
+							<div class="modal-footer bg-body-tertiary">
+								<button @click="targetSelect" type="button" class="btn btn-primary" :disabled="!form.selectedTarget">Abrir</button>
 							</div>
 						</div>
 					</div>
@@ -111,28 +111,24 @@
 			</div>
 
 			<div class="d-flex flex-row h-100">
-				<div id="navbarToggleExternalContent" class="menu collapse show overflow-auto shadow z-1" v-if="targetList.length == 1">
-
-
+				<div id="navbarToggleExternalContent" class="menu collapse show overflow-auto shadow z-1" v-if="target">
 					<div class="d-flex flex-column h-100">
-
 						<h4 class="p-3 border-bottom bg-body-secondary mb-0">
 							Extrato de Chamadas
 						</h4>
-
 						<div class="px-3 py-2">
 							<div class="d-flex my-3">
 								<img src="../assets/img/vivo.png" class="border bg-light rounded" style="width:110px;" />
 								<div class="ms-3 align-self-center">
 									<h5>
-										{{ formatPhoneNumber(this.targetList[0].value) }} 
-										<small v-if="this.targetList[0].type=='tel'" class="text-body-secondary fw-light">(Tel. Alvo)</small>
-										<small v-if="this.targetList[0].type=='imei'" class="text-body-secondary fw-light">(IMEI Alvo)</small>
+										{{ formatPhoneNumber(target.value) }} 
+										<small v-if="target.type=='tel'" class="text-body-secondary fw-light">(Tel. Alvo)</small>
+										<small v-if="target.type=='imei'" class="text-body-secondary fw-light">(IMEI Alvo)</small>
 									</h5>
 
 									<ul class="list-unstyled mb-0">
-										<li><strong>{{ this.callList.length }}</strong> registros de chamada</li>
-										<li>De <strong>{{ formatDate(this.finalCallList[0].date, "DD/MM/YYYY") }}</strong> a <strong>{{ formatDate(this.finalCallList[this.finalCallList.length-1].date, "DD/MM/YYYY") }}</strong></li>
+										<li><strong>{{ this.rawCallList.length }}</strong> registros de chamada</li>
+										<li>De <strong>{{ formatDate(this.targetCallList[0].timestamp, "DD/MM/YYYY") }}</strong> a <strong>{{ formatDate(this.targetCallList[this.targetCallList.length-1].timestamp, "DD/MM/YYYY") }}</strong></li>
 									</ul>
 								</div>
 							</div>
@@ -148,16 +144,19 @@
 						</ul>
 						
 						<div class="px-3 py-2 border-bottom shadow-sm z-2">
-							<label class="form-label">Controles</label>
+							<label class="form-label">Exibindo {{ filteredCallList.length }} de {{ targetCallList.length }} registros</label>
 							
 							<div class="row row-cols-lg-auto g-3 mb-3">
 								<div class="col-12 d-grid d-lg-block">
 									<div class="btn-group" role="group">
-										<button type="button" class="btn btn-outline-secondary position-relative" disabled>
+										<button type="button" class="btn btn-outline-secondary position-relative" :disabled="!isFilterDefined" @click="this.$refs.filter.clear()">
 											Limpar Filtros
 										</button>
 										<button type="button" class="btn btn-outline-secondary position-relative" data-bs-toggle="modal" data-bs-target="#filterModal">
 											Filtrar
+											<span v-if="isFilterDefined" class="position-absolute top-0 start-100 translate-middle p-2 bg-primary border border-light rounded-circle">
+												<span class="visually-hidden">Alert</span>
+											</span>
 										</button>
 									</div>										
 								</div>
@@ -167,58 +166,41 @@
 										Mais Opções
 									</button>
 									<ul class="dropdown-menu z-3">
-										<li><button type="button" class="dropdown-item" @click="toggleLocation1Visibility">{{map.isLocation1Visible ? 'Ocultar' : 'Exibir'}} Todos Alvos</button></li>
-										<li><button type="button" class="dropdown-item" @click="toggleLocation2Visibility">{{map.isLocation2Visible ? 'Ocultar' : 'Exibir'}} Todos Interlocutor</button></li>
-										<li><button type="button" class="dropdown-item" @click="toggleHeatmap">Mapa de Calor</button></li>
+										<li><button type="button" class="dropdown-item" @click="toggleLocationVisibility('target')">{{isTargetLocationVisible ? 'Ocultar' : 'Exibir'}} Todos Alvos</button></li>
+										<li><button type="button" class="dropdown-item" @click="toggleLocationVisibility('interlocutor')">{{isInterlocutorLocationVisible ? 'Ocultar' : 'Exibir'}} Todos Interlocutor</button></li>
+										<li><button type="button" class="dropdown-item" @click="this.$refs.map.toggleHeatmap()">{{this.$refs.map.isHeatmapVisible ? 'Ocultar' : 'Exibir'}} Mapa de Calor</button></li>
 									</ul>
 								</div>
 							</div>
 						</div>							
 
 						<div id="call-list" class="flex-fill overflow-auto p-3 bg-body-tertiary z-1">
-							<section :id="'group' + index1" v-for="(callBlock, index1) in finalCallList" :key="index1">
+							<section :id="'group' + index1" v-for="(callGroup, index1) in dateCallList" :key="index1">
 								<div class="mb-3 d-flex justify-content-center position-sticky z-3" style="top:0;">
 									<small class="badge rounded-pill text-bg-secondary opacity-75">
-										{{formatDate(callBlock.date, "dddd, DD [de] MMMM [de] YYYY") }}
+										{{formatDate(callGroup.date, "dddd, DD [de] MMMM [de] YYYY") }}
 									</small>
 								</div>
 
 								<div class="list-group mb-3">
-									<call-component v-for="(call, index2) in callBlock.calls" 
-										:id="'call_'+index1+'_'+index2"
-										:_id="'call_'+index1+'_'+index2"
-										:key="index2"
-										:call-data="call"
-										@position-refreshed="refreshMapPosition"></call-component>
+									<call-component v-for="(call) in callGroup.calls" 
+										:key="call.index"
+										:formated-call="call"
+										:raw-call="targetCallList[call.index]">
+									</call-component>
 								</div>
-							</section>							
+							</section>
+							
+							<div v-if="!filteredCallList || filteredCallList.length == 0" class="w-100 h-100 d-flex align-items-center justify-content-center">
+								<div class="d-flex flex-column align-items-center">
+									<i class="bi bi-exclamation-triangle-fill h1 text-secondary"></i>
+									<small class="text-muted">Não foram encontrados registros para os filtros informados.</small>
+								</div>								
+							</div>
 						</div>
 					</div>
 				</div>				
-				<GMapMap class="h-100 w-100 z-0" ref="myMapRef" :center="map.center" :zoom="map.zoom" map-type-id="terrain" :options="map.options">
-					<GMapMarker :key="erb" v-for="(erb, index) in erbList1" :position="erb.position" :icon="`${publicPath}blue-pin.png`" @click="openMarker1(index)">
-						<GMapInfoWindow :opened="map.openedMarkerIndex1 === index" :closeclick="true" @closeclick="openMarker1(null)">
-							<div class="px-3 pb-3">
-								<h4 class="mb-2 text-dark mb-2">Estação Radio Base (ERB)</h4>
-								<p class="mb-0"><span style="font-weight:bold">Coordenadas (latitude/longitude):</span> {{ erb.position.lat.toFixed(5) }}, {{ erb.position.lng.toFixed(5) }}</p>
-								<p><span style="font-weight:bold">Quantiade de Conexões (Alvo):</span> {{ erb.count }}</p>
-							</div>						
-						</GMapInfoWindow>
-					</GMapMarker>			
-					<GMapMarker :key="index" v-for="(erb, index) in erbList2" :position="erb.position" :icon="`${publicPath}yellow-pin.png`" @click="openMarker2(index)">
-						<GMapInfoWindow :opened="map.openedMarkerIndex2 === index" :closeclick="true" @closeclick="openMarker2(null)">
-							<div class="px-3 pb-3">
-								<h4 class="mb-2 text-dark mb-2">Estação Radio Base (ERB)</h4>
-								<p class="mb-0"><span style="font-weight:bold">Coordenadas (latitude/longitude):</span> {{ erb.position.lat.toFixed(5) }}, {{ erb.position.lng.toFixed(5) }}</p>
-								<p><span style="font-weight:bold">Quantiade de Conexões (Interlocutor):</span> {{ erb.count }}</p>
-							</div>
-						</GMapInfoWindow>
-					</GMapMarker>
-					<GMapPolygon :paths="azimuthList1" :options="map.azimuthOptions1"/>
-					<GMapPolygon :paths="azimuthList2" :options="map.azimuthOptions2"/>
-					<GMapPolygon :paths="azimuthCenterList" :options="map.centerLineOptions"/>
-					<GMapHeatmap :data="heatData" :options="map.heatmapOptions"></GMapHeatmap>
-				</GMapMap>
+				<map-component ref="map" :original-call-list="targetCallList" :filtered-call-list="filteredCallList"/>
 			</div>	
 		</main>
 
@@ -227,47 +209,37 @@
 		</footer>
 	</div>
 	
-	<filter-component></filter-component>
+	<filter-component ref="filter" :original-call-list="targetCallList" @update="updateFilteredCallList" v-if="targetCallList"/>
 </template>
 
 <script>
 import { fileProcess } from '@/utils/processor';
 import { formatDate, formatPhoneNumber } from '@/utils/utils.js';
-import darkMapStyleJSON from '../assets/dark-map-style.json'
-import '../assets/js/color-modes.js'
 import CallComponent from './components/CallComponent.vue';
 import FilterComponent from './components/FilterComponent.vue';
-
-const AZIMUTH_ANGLE = 90;
-const AZIMUTH_RADIUS = 1200;
+import MapComponent from './components/MapComponent.vue';
 
 export default {
 	components: {
 		CallComponent,
-		FilterComponent
+		FilterComponent,
+		MapComponent
 	},
 	name: 'App',
 	data() {
-		return {
-			publicPath: process.env.BASE_URL,
-			selectedFile: "",
-			selectedTarget: undefined,
-			targetList: [],
-			callList: [],
-			callListByTarget: [],
-			callListByDate: [],
-			finalCallList: [],
-			currentSection: null,
-			myMapRef: null,
+		return {		
+			target: null,
+			possibleTargetList: null,
+			rawCallList: null,
+			targetCallList: null,
+			filteredCallList: null,
+			isTargetLocationVisible: true,
+			isInterlocutorLocationVisible: true,
+			form: {
+				selectedFile: null,
+				selectedTarget: null,
+			},
 			map: {
-				isHeatmap: false,
-				heatmapOptions: {
-					maxIntensity: 10,
-					dissipating: true,
-					radius: 30
-				},
-				openedMarkerIndex1: null,
-				openedMarkerIndex2: null,
 				center: { lat: 0, lng: 0 },
 				zoom: 2,
 				options: {
@@ -279,32 +251,10 @@ export default {
 						position: 7
 					},
 				},
-				azimuthOptions1: {
-					strokeColor: "#78909C",
-					strokeOpacity: 0.8,
-					strokeWeight: 0.25,
-					fillColor: "#0d6efd",
-					fillOpacity: 0.35
-				},
-				azimuthOptions2: {
-					strokeColor: "#78909C",
-					strokeOpacity: 0.8,
-					strokeWeight: 0.25,
-					fillColor: "#ffc107",
-					fillOpacity: 0.35
-				},
-				centerLineOptions: {
-					strokeColor: "#00ff00",
-					strokeOpacity: 0.5,
-					strokeWeight: 1,
-				},
-				isLocation1Visible: true,
-				isLocation2Visible: true
-
 			},
 			graphData: {
-				telCounts: [],
-				imeiCounts: []
+				telCounts: null,
+				imeiCounts: null
 			}
 		};
 	},
@@ -312,33 +262,31 @@ export default {
 		formatDate,
 		formatPhoneNumber,
 		targetSelect() {
-			var selectedTargetValue = this.selectedTarget.value;
-			this.targetList = this.targetList.filter(function (el) {
-				return el.value == selectedTargetValue;
-			});
+			this.possibleTargetList = null;
+			this.target = this.form.selectedTarget;
+			this.createTargetCallList();			
 		},
 		previewFile(event) {
-			this.selectedFile = event.target.files[0];
+			this.form.selectedFile = event.target.files[0];
 		},
 		handleFormSubmit() {
-			var file = this.selectedFile;
+			var file = this.form.selectedFile;
 
 			if (file) {
 				const reader = new FileReader();
 				reader.onload = (e) => {
-					this.callList = fileProcess(e.target.result);
-					this.generateGraphData();	
-					this.findTarget();
-					this.generateFinalCallList();					
+					this.rawCallList = fileProcess(e.target.result);
+					this.createGraphData();	
+					this.findTargets();
 				}; 
 				reader.readAsArrayBuffer(file);
 			}
 		},
-		generateGraphData() {
+		createGraphData() {
 			let telCountsObj = {};
 			let imeiCountsObj = {};
 			
-			this.callList.forEach(call => {
+			this.rawCallList.forEach(call => {
 				[call.telIn, call.telOut].forEach(tel => {
 					if (tel) {
 						telCountsObj[tel] = (telCountsObj[tel] || 0) + 1;
@@ -355,272 +303,121 @@ export default {
 			this.graphData.telCounts = Object.entries(telCountsObj).map(([tel, count]) => ({'value': tel, 'type':'tel', count })).sort((a, b) => b.count - a.count);
 			this.graphData.imeiCounts = Object.entries(imeiCountsObj).map(([imei, count]) => ({'value': imei, 'type':'imei', count })).sort((a, b) => b.count - a.count);
 		},
-		findTarget() {
-			var maxCount = this.callList.length;
+		findTargets() {
+			var maxCount = this.rawCallList.length;
 			var counts = this.graphData.telCounts.concat(this.graphData.imeiCounts);
 			var possibleTargets = counts.filter(function (el) {
 				return el.count == maxCount
 			});
-			this.targetList = possibleTargets;
-		},
-		generateFinalCallList() {
-			if(this.targetList && this.targetList.length >= 1) {				
-				const groupedCallsByTarget = [];
-				const target = this.targetList[0].value;
 
-				this.callList.forEach((call) => {
-					let newCallObj = {};
-					newCallObj.type = call.type;
-					newCallObj.status = call.status;
-					newCallObj.timestamp = call.timestamp;
-					newCallObj.duration = call.duration;
+			if(possibleTargets && possibleTargets.length > 0) {
+				if(possibleTargets.length == 1) {
+					this.target = possibleTargets[0];
+					this.createTargetCallList();
+				} else {
+					this.possibleTargetList = possibleTargets;
+				}
 
-					if(call.telOut == target || call.imeiOut == target) {
-						newCallObj.direction = "origin";
-						newCallObj.tel1 = call.telOut;
-						newCallObj.imei1 = call.imeiOut
-						newCallObj.location1 = call.locationOut;
-						newCallObj.tel2 = call.telIn;
-						newCallObj.imei2 = call.imeiIn
-						newCallObj.location2 = call.locationIn;						
-
-					} else if (call.telIn == target || call.imeiIn == target) {
-						newCallObj.direction = "destination";
-						newCallObj.tel1 = call.telIn;
-						newCallObj.imei1 = call.imeiIn
-						newCallObj.location1 = call.locationIn;
-						newCallObj.tel2 = call.telOut;
-						newCallObj.imei2 = call.imeiOut
-						newCallObj.location2 = call.locationOut;
-					}
-					newCallObj.location1Visible = newCallObj.location1 ? true : false;
-					newCallObj.location2Visible = newCallObj.location2 ? true : false;
-
-					groupedCallsByTarget.push(newCallObj);
-				});				
-
-				const groupedCallByDate = {};
-				
-				groupedCallsByTarget.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-				groupedCallsByTarget.forEach(call => {
-					let date = new Date(call.timestamp).toISOString().split('T')[0];
-					if (!groupedCallByDate[date]) {
-						groupedCallByDate[date] = [];
-					}
-					groupedCallByDate[date].push(call);
-				});
-
-				this.finalCallList = Object.keys(groupedCallByDate).map(date => {
-					return {
-						date: date,
-						calls: groupedCallByDate[date]
-					};
-				});
+			} else {
+				alert("Ocorreu um erro ao buscar os alvos.");
 			}	
 		},
-		getAzimuthPaths(locationAttr) {
-			const resultList = [];
-			
-			this.finalCallList.forEach(group => {
-				group.calls.forEach(call => {
-					if(call[locationAttr] && call[locationAttr + "Visible"]) {
-						call[locationAttr].forEach(location => {
-							var center = { lat: location.lat, lng: location.lng };
-							var startAngle = location.azimuth - AZIMUTH_ANGLE / 2;
-							var endAngle = location.azimuth + AZIMUTH_ANGLE / 2;
+		createTargetCallList() {
+			const groupedCallList = [];
 
-							var path = [center];
-							for (var i = startAngle; i <= endAngle; i += 5) {
-								var point = window.google.maps.geometry.spherical.computeOffset(center, AZIMUTH_RADIUS, i);
-								path.push(point);								
-							}
-							resultList.push(path);
-						});
+			this.rawCallList.forEach((call, index) => {
+				let newCallObj = {};
+				newCallObj.index = index;
+				newCallObj.type = call.type;
+				newCallObj.status = call.status;
+				newCallObj.timestamp = call.timestamp;
+				newCallObj.duration = call.duration;
+
+				if(call.telOut == this.target.value || call.imeiOut == this.target.value) {
+					newCallObj.description = `outgoing ${call.type=='voice'?'call':call.type} ${call.status}`;
+					newCallObj.target = {
+						isVisible: true,
+						tel: call.telOut,
+						imei: call.imeiOut,
+						locations: call.locationOut
 					}
-				});
-			});	
-				
-			return resultList;
-		},
-		changeVisibility(locationAttr, visibility) {			
-			this.finalCallList.forEach(group => {
-				group.calls.forEach(call => {
-					if(locationAttr) {
-						call[locationAttr + "Visible"] = visibility;
-					} else {
-						call["location1Visible"] = visibility;
-						call["location2Visible"] = visibility;
+					newCallObj.interlocutor = {
+						isVisible: true,
+						tel: call.telIn,
+						imei: call.imeiIn,
+						locations: call.locationIn
+					}						
+
+				} else if (call.telIn == this.target.value || call.imeiIn == this.target.value) {
+					newCallObj.description = `incoming ${call.type=='voice'?'call':call.type} ${call.status}`;
+					newCallObj.target = {
+						isVisible: true,
+						tel: call.telIn,
+						imei: call.imeiIn,
+						locations: call.locationIn
 					}
-					
-				});
-			});	
-		},
-		toggleLocation1Visibility() {
-			this.map.isLocation1Visible = !this.map.isLocation1Visible;			
-			this.changeVisibility('location1', this.map.isLocation1Visible);
-		},
-		toggleLocation2Visibility() {
-			this.map.isLocation2Visible = !this.map.isLocation2Visible;			
-			this.changeVisibility('location2', this.map.isLocation2Visible);
-		},
-		getErbPositions(locationAttr) {
-			var groupedObject = {};
+					newCallObj.interlocutor = {
+						isVisible: true,
+						tel: call.telOut,
+						imei: call.imeiOut,
+						locations: call.locationOut
+					}	
+				}
 
-			this.finalCallList.forEach(group => {
-				group.calls.forEach(call => {
-					if(call[locationAttr] && call[locationAttr + "Visible"]) {
-						call[locationAttr].forEach(location => {
-							var key = location.lat + ',' + location.lng;
-							if (groupedObject[key]) {
-								groupedObject[key].count++;
-							} else {
-								groupedObject[key] = {
-									position: {lat: location.lat, lng: location.lng},
-									count: 1
-								};
-							}
-						});
-					}
-				});
-			});	
+				groupedCallList.push(newCallObj);
+			});
 
-			return Object.values(groupedObject);
+			this.targetCallList = groupedCallList.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+			this.filteredCallList = [...this.targetCallList];
 		},
-		getHeatmapData() {
-			var resultList = [];
-			resultList = resultList.concat(this.getErbPositions("location1"));
-			resultList = resultList.concat(this.getErbPositions("location2"));
+		toggleLocationVisibility(obj) {
+			let visibility;
+			if(obj === "target") {
+				this.isTargetLocationVisible = !this.isTargetLocationVisible;
+				visibility = this.isTargetLocationVisible;
 
-			var finalList = [];
-			resultList.forEach(erbLocation => {
-				var obj = {};
-				obj.location = new window.google.maps.LatLng(erbLocation.position.lat, erbLocation.position.lng);
-				obj.weight = erbLocation.count;
-				finalList.push(obj);
-			});			
-			
-			if(finalList && finalList.length > 0) {
-				finalList = finalList.sort((a, b) => b.weight - a.weight);
-				this.map.heatmapOptions.maxIntensity = finalList[0].weight/2;
+			} else if (obj === "interlocutor") {
+				this.isInterlocutorLocationVisible = !this.isInterlocutorLocationVisible;
+				visibility = this.isInterlocutorLocationVisible;
 			}
-			
-			return finalList;
+
+			this.filteredCallList.forEach(call => {
+				this.targetCallList[call.index][obj].isVisible = visibility
+			});	
 		},
-		openMarker1(id) {
-			this.map.openedMarkerIndex1 = id,
-			this.map.openedMarkerIndex2 = null
-		},
-		openMarker2(id) {
-			this.map.openedMarkerIndex1 = null,
-			this.map.openedMarkerIndex2 = id
-		},
-		toggleHeatmap() {
-			this.map.isHeatmap = !this.map.isHeatmap;
-		},
-		refreshMapPosition(positions) { 
-			if(positions && positions.length == 1) {
-				this.myMapRef.setCenter(positions[0]);
-			
-			} else {
-				var bounds = new window.google.maps.LatLngBounds();
-				positions.forEach(position => {
-					var latLng = new window.google.maps.LatLng(position.lat, position.lng);
-					bounds.extend(latLng);
-				});
-				this.myMapRef.fitBounds(bounds);	
-			}					
+		updateFilteredCallList(filtered) {
+			this.filteredCallList = filtered;
 		}
 	},
 	computed: {
-		erbList1: function() {
-			if(!this.map.isHeatmap) {
-				return this.getErbPositions("location1");
-			}
-			return [];
-		},
-		erbList2: function() {
-			if(!this.map.isHeatmap) {
-				return this.getErbPositions("location2");
-			}
-			return [];
-		},
-		azimuthList1: function() {
-			if(!this.map.isHeatmap) {
-				return this.getAzimuthPaths("location1");
-			}
-			return {};
-		},
-		azimuthList2: function() {
-			if(!this.map.isHeatmap) {
-				return this.getAzimuthPaths("location2");
-			}
-			return [];
-		},
-		azimuthCenterList: function() {
-			if(!this.map.isHeatmap) {
-				const resultList = [];
+		dateCallList() {
+			if(this.filteredCallList) {
+				const groupedCall = {};
 
-				const computePath = (locations) => {
-					locations.forEach(location => {
-						const center = { lat: location.lat, lng: location.lng };
-						const end = window.google.maps.geometry.spherical.computeOffset(center, AZIMUTH_RADIUS, location.azimuth);
-						resultList.push([center, end]);
-					});
-				};
-				
-				this.finalCallList.forEach(group => {
-					group.calls.forEach(call => {
-						if (call.location1Visible) computePath(call.location1 || []);
-						if (call.location2Visible) computePath(call.location2 || []);
-					});
+				this.filteredCallList.forEach(call => {
+					let date = formatDate(call.timestamp, "YYYY-MM-DD");
+					if (!groupedCall[date]) {
+						groupedCall[date] = [];
+					}
+					groupedCall[date].push(call);
 				});
 
-				return resultList;
+				return Object.keys(groupedCall).map(date => {
+					return {
+						date: date,
+						calls: groupedCall[date]
+					};
+				});
 			}
-			return [];			
+			
+			return null			
 		},
-		heatData: function() {
-			if(this.map.isHeatmap) {
-				return this.getHeatmapData();
+		isFilterDefined() {
+			if(this.filteredCallList && this.targetCallList && this.filteredCallList.length < this.targetCallList.length) {
+				return true;
 			}
-
-			return [];			
+			return false;
 		}
-	},
-	setup() {
-		const mapStyle = darkMapStyleJSON;
-
-		return {
-			mapStyle
-		}
-	},
-	mounted() {
-		this.$refs.myMapRef.$mapPromise.then((map) => {
-			this.myMapRef = map;
-		});
-		
-		if(document.documentElement.getAttribute("data-bs-theme") === "dark"){
-			this.map.options.styles = darkMapStyleJSON;
-		}
-
-		const mutationCallback = (mutationsList) => {
-			for (const mutation of mutationsList) {
-				if (
-				mutation.type !== "attributes" ||
-				mutation.attributeName !== "data-bs-theme"
-				) {
-				return
-				}
-
-				if(mutation.target.getAttribute("data-bs-theme") === "dark") {
-					this.map.options.styles = darkMapStyleJSON;
-				} else {
-					this.map.options.styles = [];
-				}
-			}
-		}
-		const observer = new MutationObserver(mutationCallback);
-		observer.observe(document.documentElement, { attributes: true });
 	}
 }
 </script>

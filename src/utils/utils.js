@@ -22,3 +22,8 @@ export function formatPhoneNumber(phoneNumber) {
 export function formatDate(dateValue, format) {
     return moment.utc(dateValue).locale('pt-br').format(format);
 }
+
+export function returnDate(dateValue, format) {
+    var dateMomentObject = moment(dateValue, format);
+    return dateMomentObject.toDate();
+}
