@@ -1,5 +1,5 @@
 <template>
-    <div class="list-group-item list-group-item-action p-3">
+    <div class="list-group-item list-group-item-action p-3" :style="call.isSelected ? 'background-color: var(--bs-list-group-action-active-bg)' : ''" :autofocus="call.isSelected" >
         <div class="d-flex justify-content-between align-items-center">
             <div class="h4 m-0">
                 <i v-if="formatedCall.description == 'outgoing call completed'" class="bi bi-telephone-outbound text-success" title="Chamada Efetuada"></i>
@@ -12,7 +12,7 @@
             
             <div class="d-flex flex-row align-items-center" style="min-width: 185px;">
                 <div class="me-2">
-                    <input v-if="hasTargetLocation" type="checkbox" class="btn-check" :id="checkId1" v-model="call.target.isVisible">
+                    <input v-if="hasTargetLocation" type="checkbox" class="btn-check" :id="checkId1" v-model="call.target.isVisible" @mouseover="setAzimuthFocus(call.target.locations)" @mouseout="setAzimuthFocus(null)">
                     <input v-if="!hasTargetLocation" type="checkbox" class="btn-check" :id="checkId1" disabled>
                     <label :class="'btn rounded-circle ' + (hasTargetLocation ? 'btn-outline-primary' : 'btn-outline-secondary')" :for="checkId1">
                         <i :class="'bi ' + (hasTargetLocation ? 'bi-broadcast-pin' : 'bi-x-lg')"></i>
@@ -31,7 +31,7 @@
 
             <div class="d-flex flex-row align-items-center" style="min-width: 180px;">
                 <div class="me-2">
-                    <input v-if="hasInterlocutorLocation" type="checkbox" class="btn-check" :id="checkId2" v-model="call.interlocutor.isVisible">
+                    <input v-if="hasInterlocutorLocation" type="checkbox" class="btn-check" :id="checkId2" v-model="call.interlocutor.isVisible"  @mouseover="setAzimuthFocus(call.target.locations)" @mouseout="setAzimuthFocus(null)">
                     <input v-if="!hasInterlocutorLocation" type="checkbox" class="btn-check" :id="checkId2" disabled>
                     <label :class="'btn rounded-circle ' + (hasInterlocutorLocation ? 'btn-outline-warning' : 'btn-outline-secondary')" :for="checkId2">
                         <i :class="'bi ' + (hasInterlocutorLocation ? 'bi-broadcast-pin' : 'bi-x-lg')"></i>
@@ -66,7 +66,7 @@ export default {
         formatedCall: null,
         rawCall: null
     },
-    emits: ['positionRefreshed'],
+    emits: ['positionRefreshed', 'azimuthFocused'],
     data () {
         return {
             checkId1: 'check1_' + this.formatedCall.index,
@@ -87,6 +87,9 @@ export default {
     methods: {
         formatPhoneNumber,
         formatDate,
+        setAzimuthFocus(locations) {
+            this.$emit('azimuthFocused',  locations);
+        }
         /* emitPositionRefreshed(data, locationAttr) {
             //only emits if the visibility is changed to visible
             if(data[locationAttr+"Visible"]) {

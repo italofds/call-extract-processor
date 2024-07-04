@@ -184,9 +184,11 @@
 
 								<div class="list-group mb-3">
 									<call-component v-for="(call) in callGroup.calls" 
+										:id="`call${call.index}`"
 										:key="call.index"
 										:formated-call="call"
-										:raw-call="targetCallList[call.index]">
+										:raw-call="targetCallList[call.index]"
+										@azimuth-focused="setAzimuthFocus">
 									</call-component>
 								</div>
 							</section>
@@ -200,7 +202,7 @@
 						</div>
 					</div>
 				</div>				
-				<map-component ref="map" :original-call-list="targetCallList" :filtered-call-list="filteredCallList"/>
+				<map-component ref="map" :original-call-list="targetCallList" :filtered-call-list="filteredCallList" :focused-azimuth="focusedAzimuth" @erb-selected="selectCalls"/>
 			</div>	
 		</main>
 
@@ -235,6 +237,7 @@ export default {
 			filteredCallList: null,
 			isTargetLocationVisible: true,
 			isInterlocutorLocationVisible: true,
+			focusedAzimuth: null,
 			form: {
 				selectedFile: null,
 				selectedTarget: null,
@@ -328,6 +331,7 @@ export default {
 			this.rawCallList.forEach((call, index) => {
 				let newCallObj = {};
 				newCallObj.index = index;
+				newCallObj.isSelected = false;
 				newCallObj.type = call.type;
 				newCallObj.status = call.status;
 				newCallObj.timestamp = call.timestamp;
@@ -387,6 +391,33 @@ export default {
 		},
 		updateFilteredCallList(filtered) {
 			this.filteredCallList = filtered;
+		},
+		selectCalls(erb) {
+			this.filteredCallList.forEach(filteredCall => {
+				var targetErbList = [];
+				if(filteredCall.target.locations && filteredCall.target.locations.length > 0) {
+					targetErbList = filteredCall.target.locations;
+				}
+				var interlocutorErbList = [];
+				if(filteredCall.interlocutor.locations && filteredCall.interlocutor.locations.length > 0) {
+					interlocutorErbList = filteredCall.interlocutor.locations;
+				}				
+				var callErbList = targetErbList.concat(interlocutorErbList);
+				callErbList.every(location => {					
+					if(erb && location.lat == erb.lat && location.lng == erb.lng) {
+						this.targetCallList[filteredCall.index].isSelected = true;
+						const element = document.getElementById("call"+filteredCall.index);
+						element.scrollIntoView({ behavior: "smooth" });
+						return false;
+					} else {
+						this.targetCallList[filteredCall.index].isSelected = false;
+					}
+					return true;
+				});	
+			});
+		},
+		setAzimuthFocus(locations) {
+			this.focusedAzimuth = locations;
 		}
 	},
 	computed: {
