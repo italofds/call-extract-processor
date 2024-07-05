@@ -12,9 +12,9 @@
             
             <div class="d-flex flex-row align-items-center" style="min-width: 185px;">
                 <div class="me-2">
-                    <input v-if="hasTargetLocation" type="checkbox" class="btn-check" :id="checkId1" v-model="call.target.isVisible" @mouseover="setAzimuthFocus(call.target.locations)" @mouseout="setAzimuthFocus(null)">
+                    <input v-if="hasTargetLocation" type="checkbox" class="btn-check" :id="checkId1" v-model="call.target.isVisible">
                     <input v-if="!hasTargetLocation" type="checkbox" class="btn-check" :id="checkId1" disabled>
-                    <label :class="'btn rounded-circle ' + (hasTargetLocation ? 'btn-outline-primary' : 'btn-outline-secondary')" :for="checkId1">
+                    <label :class="'btn rounded-circle ' + (hasTargetLocation ? 'btn-outline-primary' : 'btn-outline-secondary')" :for="checkId1" @mouseover="setAzimuthFocus(call.target.locations)" @mouseout="setAzimuthFocus(null)">
                         <i :class="'bi ' + (hasTargetLocation ? 'bi-broadcast-pin' : 'bi-x-lg')"></i>
                     </label>
                 </div>                
@@ -31,9 +31,9 @@
 
             <div class="d-flex flex-row align-items-center" style="min-width: 180px;">
                 <div class="me-2">
-                    <input v-if="hasInterlocutorLocation" type="checkbox" class="btn-check" :id="checkId2" v-model="call.interlocutor.isVisible"  @mouseover="setAzimuthFocus(call.target.locations)" @mouseout="setAzimuthFocus(null)">
+                    <input v-if="hasInterlocutorLocation" type="checkbox" class="btn-check" :id="checkId2" v-model="call.interlocutor.isVisible">
                     <input v-if="!hasInterlocutorLocation" type="checkbox" class="btn-check" :id="checkId2" disabled>
-                    <label :class="'btn rounded-circle ' + (hasInterlocutorLocation ? 'btn-outline-warning' : 'btn-outline-secondary')" :for="checkId2">
+                    <label :class="'btn rounded-circle ' + (hasInterlocutorLocation ? 'btn-outline-warning' : 'btn-outline-secondary')" :for="checkId2" @mouseover="setAzimuthFocus(call.interlocutor.locations)" @mouseout="setAzimuthFocus(null)">
                         <i :class="'bi ' + (hasInterlocutorLocation ? 'bi-broadcast-pin' : 'bi-x-lg')"></i>
                     </label>
                 </div>                

@@ -13,14 +13,14 @@
 		</div>		
 		<GMapPolygon v-if="!isHeatmapVisible" :paths="targetAzimuthList" :options="targetOptions"/>
 		<GMapPolygon v-if="!isHeatmapVisible" :paths="interlocutorAzimuthList" :options="interlocutorOptions"/>
+		<GMapPolygon v-if="!isHeatmapVisible" :paths="focusAzimuthList" :options="focusedOptions"/>
 		<GMapHeatmap v-if="isHeatmapVisible" :data="heatmapList" :options="heatmapOptions"></GMapHeatmap>
 	</GMapMap>
 </template>
 
 <script>
-
-import darkMapStyleJSON from '../../assets/dark-map-style.json'
-import '../../assets/js/color-modes.js'
+import darkMapStyleJSON from '../../assets/dark-map-style.json';
+import '../../assets/js/color-modes.js';
 
 const AZIMUTH_ANGLE = 90;
 const AZIMUTH_RADIUS = 1200;
@@ -33,9 +33,14 @@ export default {
 		filteredCallList: null,
 		focusedAzimuth: null,
     },	
+	watch: {
+		erbList(newValue) {
+			this.animateMap(newValue);
+		}
+	},
     data () {
         return {
-			callList: this.originalCallList,			
+			visibleCallList: this.filteredCallList,
 			myMapRef: null,
 			center: { lat: 0, lng: 0 },
 			zoom: 2,
@@ -64,6 +69,13 @@ export default {
 				fillColor: "#ffc107",
 				fillOpacity: 0.35
 			},
+			focusedOptions: {
+				strokeColor: "#000000",
+				strokeOpacity: 0.8,
+				strokeWeight: 0.25,
+				fillColor: "#000000",
+				fillOpacity: 0.25
+			},
 			heatmapOptions: {				
 				dissipating: true,
 				radius: 30
@@ -72,9 +84,9 @@ export default {
 		}
     },
 	mounted () {
-		/* this.$refs.myMapRef.$mapPromise.then((map) => {
+		this.$refs.myMapRef.$mapPromise.then((map) => {
 			this.myMapRef = map;
-		}); */
+		});
 		
 		if(document.documentElement.getAttribute("data-bs-theme") === "dark"){
 			this.mapOptions.styles = darkMapStyleJSON;
@@ -139,20 +151,25 @@ export default {
 		},
 		selectErb(erb) {
 			this.$emit('erbSelected', erb);
+		},
+		animateMap(positions) {
+			if(positions && positions.length > 0) {
+				if(positions.length == 1) {
+					this.myMapRef.panTo(positions[0]);
+				
+				} else {
+					var bounds = new window.google.maps.LatLngBounds();
+					positions.forEach(position => {
+						var latLng = new window.google.maps.LatLng(position.lat, position.lng);
+						bounds.extend(latLng);
+					});
+					if(this.myMapRef) {
+						this.myMapRef.fitBounds(bounds);
+					}
+					
+				}
+			}
 		}
-		/*refreshMapPosition(positions) { 
-			if(positions && positions.length == 1) {
-				this.myMapRef.setCenter(positions[0]);
-			
-			} else {
-				var bounds = new window.google.maps.LatLngBounds();
-				positions.forEach(position => {
-					var latLng = new window.google.maps.LatLng(position.lat, position.lng);
-					bounds.extend(latLng);
-				});
-				this.myMapRef.fitBounds(bounds);	
-			}					
-		}*/
     },
 	computed: {
 		erbList() {
@@ -201,6 +218,27 @@ export default {
 		},
 		interlocutorAzimuthList() {
 			return this.getAzimuthPaths("interlocutor");
+		},
+		focusAzimuthList() {
+			if(this.focusedAzimuth && this.focusedAzimuth.length > 0) {
+				this.animateMap(this.focusedAzimuth);
+				const resultList = [];
+				this.focusedAzimuth.forEach(location => {
+					var center = { lat: location.lat, lng: location.lng };
+					var startAngle = location.azimuth - AZIMUTH_ANGLE / 2;
+					var endAngle = location.azimuth + AZIMUTH_ANGLE / 2;
+
+					var path = [center];
+					for (var i = startAngle; i <= endAngle; i += 5) {
+						var point = window.google.maps.geometry.spherical.computeOffset(center, AZIMUTH_RADIUS, i);
+						path.push(point);								
+					}
+					resultList.push(path);
+				});
+				return resultList;
+			}
+			
+			return [];
 		}
 	}
 };
