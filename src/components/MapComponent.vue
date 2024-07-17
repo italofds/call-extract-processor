@@ -34,8 +34,12 @@ export default {
 		focusedAzimuth: null,
     },	
 	watch: {
-		erbList(newValue) {
-			this.animateMap(newValue);
+		erbList(newValue, oldValue) {
+			if(newValue != null && newValue.length > 0) {
+				if(oldValue == null || Math.abs(newValue.length - oldValue.length) > 1) {
+					this.animateMap(newValue);
+				}
+			}			
 		}
 	},
     data () {

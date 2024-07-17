@@ -136,12 +136,19 @@
 
 						<ul class="nav nav-tabs mx-3">
 							<li class="nav-item">
-								<a class="nav-link active" aria-current="page" href="#">Lista</a>
+								<button class="nav-link active" data-bs-toggle="tab" data-bs-target="#list-tab-pane" type="button" role="tab" aria-controls="list-tab-pane" aria-selected="true">Lista</button>
 							</li>
 							<li class="nav-item">
-								<a class="nav-link" href="#">Gráficos</a>
+								<button class="nav-link" data-bs-toggle="tab" data-bs-target="#chart-tab-pane" type="button" role="tab" aria-controls="chart-tab-pane" aria-selected="false">Gráficos</button>
 							</li>
 						</ul>
+
+						<div class="tab-content">
+							<div class="tab-pane fade show active" id="list-tab-pane" role="tabpanel" aria-labelledby="list-tab" tabindex="0">
+							</div>
+							<div class="tab-pane fade" id="chart-tab-pane" role="tabpanel" aria-labelledby="chart-tab" tabindex="1">
+							</div>
+						</div>
 						
 						<div class="px-3 py-2 border-bottom shadow-sm z-2">
 							<label class="form-label">Exibindo {{ filteredCallList.length }} de {{ targetCallList.length }} registros</label>
