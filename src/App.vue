@@ -143,68 +143,69 @@
 							</li>
 						</ul>
 
-						<div class="tab-content">
-							<div class="tab-pane fade show active" id="list-tab-pane" role="tabpanel" aria-labelledby="list-tab" tabindex="0">
+						<div class="tab-content flex-fill">
+							<div class="tab-pane fade show active d-flex flex-column h-100" id="list-tab-pane" role="tabpanel" aria-labelledby="list-tab" tabindex="0">
+								<div class="px-3 py-2 border-bottom shadow-sm z-2">
+									<label class="form-label">Exibindo {{ filteredCallList.length }} de {{ targetCallList.length }} registros</label>
+									
+									<div class="row row-cols-lg-auto g-3 mb-3">
+										<div class="col-12 d-grid d-lg-block">
+											<div class="btn-group" role="group">
+												<button type="button" class="btn btn-outline-secondary position-relative" :disabled="!isFilterDefined" @click="this.$refs.filter.clear()">
+													Limpar Filtros
+												</button>
+												<button type="button" class="btn btn-outline-secondary position-relative" data-bs-toggle="modal" data-bs-target="#filterModal">
+													Filtrar
+													<span v-if="isFilterDefined" class="position-absolute top-0 start-100 translate-middle p-2 bg-primary border border-light rounded-circle">
+														<span class="visually-hidden">Alert</span>
+													</span>
+												</button>
+											</div>										
+										</div>
+
+										<div class="col-12 d-grid d-lg-block dropdown">
+											<button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+												Mais Opções
+											</button>
+											<ul class="dropdown-menu z-3">
+												<li><button type="button" class="dropdown-item" @click="toggleLocationVisibility('target')">{{isTargetLocationVisible ? 'Ocultar' : 'Exibir'}} Todos Alvos</button></li>
+												<li><button type="button" class="dropdown-item" @click="toggleLocationVisibility('interlocutor')">{{isInterlocutorLocationVisible ? 'Ocultar' : 'Exibir'}} Todos Interlocutor</button></li>
+												<li><button type="button" class="dropdown-item" @click="this.$refs.map.toggleHeatmap()">{{this.$refs.map.isHeatmapVisible ? 'Ocultar' : 'Exibir'}} Mapa de Calor</button></li>
+											</ul>
+										</div>
+									</div>
+								</div>							
+
+								<div id="call-list" class="flex-fill overflow-auto p-3 bg-body-tertiary z-1" style="height: 0;">
+									<section :id="'group' + index1" v-for="(callGroup, index1) in dateCallList" :key="index1">
+										<div class="mb-3 d-flex justify-content-center position-sticky z-3" style="top:0;">
+											<small class="badge rounded-pill text-bg-secondary opacity-75">
+												{{formatDate(callGroup.date, "dddd, DD [de] MMMM [de] YYYY") }}
+											</small>
+										</div>
+
+										<div class="list-group mb-3">
+											<call-component v-for="(call) in callGroup.calls" 
+												:id="`call${call.index}`"
+												:key="call.index"
+												:formated-call="call"
+												:raw-call="targetCallList[call.index]"
+												@azimuth-focused="setAzimuthFocus">
+											</call-component>
+										</div>
+									</section>
+									
+									<div v-if="!filteredCallList || filteredCallList.length == 0" class="w-100 h-100 d-flex align-items-center justify-content-center">
+										<div class="d-flex flex-column align-items-center">
+											<i class="bi bi-exclamation-triangle-fill h1 text-secondary"></i>
+											<small class="text-muted">Não foram encontrados registros para os filtros informados.</small>
+										</div>								
+									</div>
+								</div>
 							</div>
+
 							<div class="tab-pane fade" id="chart-tab-pane" role="tabpanel" aria-labelledby="chart-tab" tabindex="1">
-							</div>
-						</div>
-						
-						<div class="px-3 py-2 border-bottom shadow-sm z-2">
-							<label class="form-label">Exibindo {{ filteredCallList.length }} de {{ targetCallList.length }} registros</label>
-							
-							<div class="row row-cols-lg-auto g-3 mb-3">
-								<div class="col-12 d-grid d-lg-block">
-									<div class="btn-group" role="group">
-										<button type="button" class="btn btn-outline-secondary position-relative" :disabled="!isFilterDefined" @click="this.$refs.filter.clear()">
-											Limpar Filtros
-										</button>
-										<button type="button" class="btn btn-outline-secondary position-relative" data-bs-toggle="modal" data-bs-target="#filterModal">
-											Filtrar
-											<span v-if="isFilterDefined" class="position-absolute top-0 start-100 translate-middle p-2 bg-primary border border-light rounded-circle">
-												<span class="visually-hidden">Alert</span>
-											</span>
-										</button>
-									</div>										
-								</div>
-
-								<div class="col-12 d-grid d-lg-block dropdown">
-									<button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-										Mais Opções
-									</button>
-									<ul class="dropdown-menu z-3">
-										<li><button type="button" class="dropdown-item" @click="toggleLocationVisibility('target')">{{isTargetLocationVisible ? 'Ocultar' : 'Exibir'}} Todos Alvos</button></li>
-										<li><button type="button" class="dropdown-item" @click="toggleLocationVisibility('interlocutor')">{{isInterlocutorLocationVisible ? 'Ocultar' : 'Exibir'}} Todos Interlocutor</button></li>
-										<li><button type="button" class="dropdown-item" @click="this.$refs.map.toggleHeatmap()">{{this.$refs.map.isHeatmapVisible ? 'Ocultar' : 'Exibir'}} Mapa de Calor</button></li>
-									</ul>
-								</div>
-							</div>
-						</div>							
-
-						<div id="call-list" class="flex-fill overflow-auto p-3 bg-body-tertiary z-1">
-							<section :id="'group' + index1" v-for="(callGroup, index1) in dateCallList" :key="index1">
-								<div class="mb-3 d-flex justify-content-center position-sticky z-3" style="top:0;">
-									<small class="badge rounded-pill text-bg-secondary opacity-75">
-										{{formatDate(callGroup.date, "dddd, DD [de] MMMM [de] YYYY") }}
-									</small>
-								</div>
-
-								<div class="list-group mb-3">
-									<call-component v-for="(call) in callGroup.calls" 
-										:id="`call${call.index}`"
-										:key="call.index"
-										:formated-call="call"
-										:raw-call="targetCallList[call.index]"
-										@azimuth-focused="setAzimuthFocus">
-									</call-component>
-								</div>
-							</section>
-							
-							<div v-if="!filteredCallList || filteredCallList.length == 0" class="w-100 h-100 d-flex align-items-center justify-content-center">
-								<div class="d-flex flex-column align-items-center">
-									<i class="bi bi-exclamation-triangle-fill h1 text-secondary"></i>
-									<small class="text-muted">Não foram encontrados registros para os filtros informados.</small>
-								</div>								
+								<!-- <chart-component :data="graphData.telCounts" :title="'Quantidade de Registros'" :type="'line'"></chart-component> -->
 							</div>
 						</div>
 					</div>
@@ -227,12 +228,14 @@ import { formatDate, formatPhoneNumber } from '@/utils/utils.js';
 import CallComponent from './components/CallComponent.vue';
 import FilterComponent from './components/FilterComponent.vue';
 import MapComponent from './components/MapComponent.vue';
+/* import ChartComponent from './components/ChartComponent.vue'; */
 
 export default {
 	components: {
 		CallComponent,
 		FilterComponent,
-		MapComponent
+		MapComponent,
+		/* ChartComponent */
 	},
 	name: 'App',
 	data() {
