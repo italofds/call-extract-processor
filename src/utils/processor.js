@@ -1,10 +1,13 @@
+/* eslint-disable */
+
 const moment = require('moment');
 const XLSX = require('xlsx');
 
 const typeMapping = {
     "Voz": "voice",
+    "CHAMADA": "voice",
     "SMS": "message",
-    "TORP.": "message"
+    "TORP.": "message",    
 };
 
 const statusMapping = {
@@ -26,6 +29,7 @@ export function fileProcess(fileContent) {
     //Check if it's TIM's spreadsheet
     } else if (workbook.SheetNames[0].trim() === "Dados de Pesquisa") {
         console.log("TIM");
+        return processTim(workbook);
 
     //Check if it's CLARO's spreadsheet
     } else if (workbook.SheetNames[0].trim() === "Sheet0") {
@@ -34,6 +38,90 @@ export function fileProcess(fileContent) {
     } else {
         alert("Não foi possível reconhecer o formato do extrato de chamadas informado. Tente novamente utilizando outra planilha.");
     } 
+}
+
+function processTim(workbook) {
+    const aba1 = workbook.Sheets[workbook.SheetNames[1]];
+    const aba2 = workbook.Sheets[workbook.SheetNames[4]];
+    
+    var jsonCalls = XLSX.utils.sheet_to_json(aba1, { range: 0 });
+    jsonCalls = jsonCalls.slice(0, jsonCalls.length - 1);
+    jsonCalls = jsonCalls.map(obj => 
+        Object.fromEntries(
+            Object.entries(obj).map(([key, value]) => [key, value === "." ? "" : value])
+        )
+    );    
+
+    var jsonERBs = XLSX.utils.sheet_to_json(aba2, { range: 0 });
+    jsonERBs = jsonERBs.slice(0, jsonERBs.length - 1);
+    jsonERBs = jsonERBs.map(obj => 
+        Object.fromEntries(
+            Object.entries(obj).map(([key, value]) => [key, value === "." ? "" : value])
+        )
+    );    
+
+    const resultObj = jsonCalls.map(function(e) {
+        const originalType = e["TIPO"].trim();
+        const finalType = typeMapping[originalType] || "undefined";
+
+        // TIM's extraction don't have STATUS definition
+        const finalStatus = "undefined";
+
+        const dateTimeString = `${e["HORA LOCAL"].trim()}`;
+        const finalTimestamp = moment.utc(dateTimeString, "DD/MM/YYYY HH:mm:ss").toISOString();
+
+        const originalLocation1 = e["PRIMEIRA CGI/ERB"].trim();
+        if(originalLocation1) {
+            const location1Obj = jsonERBs.find(jsonERB => {
+                return jsonERB["CGI/ERB"].trim() === originalLocation1;
+            });
+            if(location1Obj) {            
+                var finalLocation1 = {
+                    lat: parseFloat(String(location1Obj["LATITUDE"]).replace(/,/g, '.')),
+                    lng: parseFloat(String(location1Obj["LONGITUDE"]).replace(/,/g, '.')),
+                    azimuth: parseInt(String(location1Obj["AZIMUTE"]).slice(0, -1))
+                };
+            }
+        }
+
+        const originalLocation2 = e["ÚLTIMA CGI/ERB"].trim();
+        if(originalLocation2) {
+            const location2Obj = jsonERBs.find(jsonERB => {
+                return jsonERB["CGI/ERB"].trim() === originalLocation2;
+            });
+            if(location2Obj) {            
+                var finalLocation2 = {
+                    lat: parseFloat(String(location2Obj["LATITUDE"]).replace(/,/g, '.')),
+                    lng: parseFloat(String(location2Obj["LONGITUDE"]).replace(/,/g, '.')),
+                    azimuth: parseInt(String(location2Obj["AZIMUTE"]).slice(0, -1))
+                };
+            }
+        }
+
+        const imeiOut = `${e["IMEI ORIGEM"].trim()}`;
+        const imeiIn = `${e["IMEI DESTINO"].trim()}`;
+        if(imeiOut) {
+            var locationArrayOut = [finalLocation1, finalLocation2].filter(Boolean);
+
+        } else if (imeiIn) {
+            var locationArrayIn = [finalLocation1, finalLocation2].filter(Boolean);
+        }
+        
+        return {
+            type: finalType,
+            status: finalStatus,
+            timestamp: finalTimestamp,
+            duration: e["DURAÇÃO"],
+            telOut: formatTelNumber(e["Nº ORIGEM"]),
+            imeiOut: imeiOut,
+            locationOut: locationArrayOut,
+            telIn: formatTelNumber(e["Nº DESTINO"]),
+            imeiIn: imeiIn,
+            locationIn: locationArrayIn
+        }
+    });
+
+    return {company: 'tim', list: resultObj};
 }
 
 function processVivo(workbook) {
@@ -96,7 +184,7 @@ function processVivo(workbook) {
         }
     });
 
-    return resultObj;
+    return {company: 'vivo', list: resultObj};
 }
 
 function breakCoordinateDMS(coordinate) {
@@ -118,5 +206,14 @@ function convertDMSToDD(degrees, minutes, seconds, direction) {
         dd = dd * -1;
     }
     return dd;
+}
+
+function formatTelNumber(value) {
+    if(value.slice(0,2) == "55" && (value.length == 13 || value.length == 12)) {
+        return value.slice(2);
+
+    } else {
+        return value;
+    }
 }
   

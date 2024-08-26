@@ -2,8 +2,10 @@
     <div class="list-group-item list-group-item-action p-3" :style="call.isSelected ? 'background-color: var(--bs-list-group-action-active-bg)' : ''" :autofocus="call.isSelected" >
         <div class="d-flex justify-content-between align-items-center">
             <div class="h4 m-0">
-                <i v-if="formatedCall.description == 'outgoing call completed'" class="bi bi-telephone-outbound text-success" title="Chamada Efetuada"></i>
-                <i v-if="formatedCall.description == 'incoming call completed'" class="bi bi-telephone-inbound text-danger" title="Chamada Recebida"></i>
+                <i v-if="formatedCall.description == 'outgoing call undefined'" class="bi bi-telephone-outbound text-muted" title="Chamada Efetuada"></i>
+                <i v-if="formatedCall.description == 'incoming call undefined'" class="bi bi-telephone-inbound text-muted" title="Chamada Recebida"></i>
+                <i v-if="formatedCall.description == 'outgoing call completed'" class="bi bi-telephone-outbound text-success" title="Chamada Efetuada (completada)"></i>
+                <i v-if="formatedCall.description == 'incoming call completed'" class="bi bi-telephone-inbound text-danger" title="Chamada Recebida (completada)"></i>
                 <i v-if="formatedCall.description == 'outgoing call not-completed'" class="bi bi-telephone-x text-success" title="Chamada Efetuada (Não completada)"></i>
                 <i v-if="formatedCall.description == 'incoming call not-completed'" class="bi bi-telephone-x text-danger" title="Chamada Recebida (Não completada)"></i>
                 <i v-if="formatedCall.description == 'outgoing message delivered'" class="bi bi-envelope-arrow-up text-success" title="Mensagem Enviada"></i>

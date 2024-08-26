@@ -118,7 +118,7 @@
 						</h4>
 						<div class="px-3 py-2">
 							<div class="d-flex my-3">
-								<img src="../assets/img/vivo.png" class="border bg-light rounded" style="width:110px;" />
+								<img :src="`/img/${company}.png`" class="border bg-light rounded" style="width:110px;" />
 								<div class="ms-3 align-self-center">
 									<h5>
 										{{ formatPhoneNumber(target.value) }} 
@@ -242,6 +242,7 @@ export default {
 		return {		
 			target: null,
 			possibleTargetList: null,
+			company: null,
 			rawCallList: null,
 			targetCallList: null,
 			filteredCallList: null,
@@ -288,7 +289,9 @@ export default {
 			if (file) {
 				const reader = new FileReader();
 				reader.onload = (e) => {
-					this.rawCallList = fileProcess(e.target.result);
+					var resultObj = fileProcess(e.target.result);
+					this.company = resultObj.company;
+					this.rawCallList = resultObj.list;
 					this.createGraphData();	
 					this.findTargets();
 				}; 

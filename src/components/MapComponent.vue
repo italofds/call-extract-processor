@@ -6,7 +6,7 @@
 					<div class="px-3 pb-3">
 						<h4 class="mb-2 text-dark mb-2">Estação Radio Base (ERB)</h4>
 						<p class="mb-0"><span style="font-weight:bold">Coordenadas (latitude/longitude):</span> {{ erb.lat.toFixed(7) }}, {{ erb.lng.toFixed(7) }}</p>
-						<p><span style="font-weight:bold">Registros de Ligações/Mensagens:</span> {{ erb.count }}</p>
+						<p><span style="font-weight:bold">Registros Visíveis de Ligações/Mensagens:</span> {{ erb.count }}</p>
 					</div>
 				</GMapInfoWindow>
 			</GMapMarker>
@@ -19,8 +19,7 @@
 </template>
 
 <script>
-import darkMapStyleJSON from '../../assets/dark-map-style.json';
-import '../../assets/js/color-modes.js';
+import darkMapStyleJSON from '@/json/dark-map-style.json';
 
 const AZIMUTH_ANGLE = 90;
 const AZIMUTH_RADIUS = 1200;
@@ -39,6 +38,14 @@ export default {
 				if(oldValue == null || Math.abs(newValue.length - oldValue.length) > 1) {
 					this.animateMap(newValue);
 				}
+			}
+
+			const countOld = oldValue?.length || 0;
+			const countNew = newValue?.length || 0;
+
+			if (countNew > 0 && countNew !== countOld) {
+				this.toggleInfo(null);
+				this.selectErb(null);
 			}			
 		}
 	},
@@ -169,8 +176,7 @@ export default {
 					});
 					if(this.myMapRef) {
 						this.myMapRef.fitBounds(bounds);
-					}
-					
+					}					
 				}
 			}
 		}
@@ -182,19 +188,29 @@ export default {
 
 				this.filteredCallList.forEach(filteredCall => {
 					const originalCall = this.originalCallList[filteredCall.index];
+					var callErbCountObj = {};
 
 					if(originalCall.target.isVisible && originalCall.target.locations) {
 						originalCall.target.locations.forEach(location => {
 							var key = location.lat + ',' + location.lng;
-							erbCountObj[key] = (erbCountObj[key] || 0) + 1;
+							if(!callErbCountObj[key]) {
+								erbCountObj[key] = (erbCountObj[key] || 0) + 1;
+								callErbCountObj[key] = 1;
+							}				
 						});
 					}
 					if(originalCall.interlocutor.isVisible && originalCall.interlocutor.locations) {
 						originalCall.interlocutor.locations.forEach(location => {
 							var key = location.lat + ',' + location.lng;
-							erbCountObj[key] = (erbCountObj[key] || 0) + 1;
+							if(!callErbCountObj[key]) {
+								erbCountObj[key] = (erbCountObj[key] || 0) + 1;
+								callErbCountObj[key] = 1;
+							}
 						});
 					}
+
+					
+					
 				});	
 
 				return Object.entries(erbCountObj).map(([key, count]) => (
@@ -203,9 +219,9 @@ export default {
 						'lng': parseFloat(key.split(',')[1]), 
 						'count': count 
 					}
-				)).sort((a, b) => b.count - a.count);
+				))//.sort((a, b) => b.count - a.count);
 			}
-			return null;		
+			return null;	
 		},
 		heatmapList() {			
 			var heatmapList = [];
