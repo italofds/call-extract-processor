@@ -241,9 +241,18 @@ export default {
 		},
 		focusAzimuthList() {
 			if(this.focusedAzimuth && this.focusedAzimuth.length > 0) {
-				this.animateMap(this.focusedAzimuth);
-				const resultList = [];
+				const erbsSet = new Set();
+				const erbsList = [];
+				const azimuthBoundsList = [];
+				const azimuthPointsList = [];
+
 				this.focusedAzimuth.forEach(location => {
+					var latLngKey = `${location.lat},${location.lng}`;
+					if (!erbsSet.has(latLngKey)) {
+						erbsSet.add(latLngKey); 
+						erbsList.push({lat: location.lat, lng: location.lng});
+					}
+
 					var center = { lat: location.lat, lng: location.lng };
 					var startAngle = location.azimuth - AZIMUTH_ANGLE / 2;
 					var endAngle = location.azimuth + AZIMUTH_ANGLE / 2;
@@ -251,11 +260,19 @@ export default {
 					var path = [center];
 					for (var i = startAngle; i <= endAngle; i += 5) {
 						var point = window.google.maps.geometry.spherical.computeOffset(center, AZIMUTH_RADIUS, i);
-						path.push(point);								
+						path.push(point);
+						azimuthBoundsList.push({ lat: point.lat(), lng: point.lng() });						
 					}
-					resultList.push(path);
+					azimuthPointsList.push(path);
 				});
-				return resultList;
+
+				if(erbsList.length == 1) {
+					this.animateMap(erbsList);
+				} else {
+					this.animateMap(azimuthBoundsList);
+				}
+
+				return azimuthPointsList;
 			}
 			
 			return [];
