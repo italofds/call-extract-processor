@@ -47,13 +47,13 @@ function processTim(workbook) {
     var jsonERBs;
     
     if(callTab) {
-        jsonRecords = clearVivoJSON(XLSX.utils.sheet_to_json(callTab));
+        jsonRecords = clearTimJSON(XLSX.utils.sheet_to_json(callTab));
    
     } else if (messageTab) {
-        jsonRecords = clearVivoJSON(XLSX.utils.sheet_to_json(messageTab));
+        jsonRecords = clearTimJSON(XLSX.utils.sheet_to_json(messageTab));
     }    
 
-    jsonERBs = clearVivoJSON(XLSX.utils.sheet_to_json(erbTab));
+    jsonERBs = clearTimJSON(XLSX.utils.sheet_to_json(erbTab));
 
     const resultObj = jsonRecords.map(function(e) {
         var finalType;
@@ -248,7 +248,7 @@ function formatTelNumber(value) {
     }
 }
 
-function clearVivoJSON(json) {
+function clearTimJSON(json) {
     json = json.slice(0, json.length - 1); //remove footer / last item
     return json.map(obj => 
         Object.fromEntries(
