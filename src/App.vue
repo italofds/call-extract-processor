@@ -118,7 +118,7 @@
 						</h4>
 						<div class="px-3 py-2">
 							<div class="d-flex my-3">
-								<img :src="`/img/${company}.png`" class="border bg-light rounded" style="width:110px;" />
+								<img :src="`./img/${company}.png`" class="border bg-light rounded" style="width:110px;" />
 								<div class="ms-3 align-self-center">
 									<h5>
 										{{ formatPhoneNumber(target.value) }} 
