@@ -71,9 +71,9 @@
 			<div class="cover d-flex align-items-center"  v-if="!target">
 
 				<div class="container text-center text-light" v-if="!possibleTargetList">
-					<h1 class="mb-3">Processador de Extrato de Chamadas</h1>
+					<h1 class="mb-3">Processador de Extrato de Chamadas/Mensagens</h1>
 					<div class="lead col-lg-6 mx-auto mb-5">
-						<p>Ferramenta de processamento de chamadas projetado para as empresas Vivo, Claro e Tim, que tem como objetivo apresentar um resultado mais amigável ao usuário a partir do arquivo Excel do extrato das chamadas. Esta ferramenta exibe as localizações aproximadas de cada ligação, permitindo uma análise mais clara e detalhada das comunicações realizadas pelo alvo.</p>
+						<p>Ferramenta de processamento de chamadas e mensagens projetado para as empresas Vivo, Claro e Tim, que tem como objetivo apresentar um resultado mais amigável ao usuário a partir do arquivo Excel do extrato das chamadas/mensagens. Esta ferramenta exibe as localizações aproximadas de cada ligação, permitindo uma análise mais clara e detalhada das comunicações realizadas pelo alvo.</p>
 					</div>					
 					<form @submit.prevent="handleFormSubmit" class="col-lg-6 mx-auto " >
 						<div class="input-group">
@@ -92,9 +92,9 @@
 							<div class="modal-body">
 								<div class="alert alert-warning" role="alert">
 									<i class="bi bi-exclamation-triangle-fill me-2"></i>
-									<strong>Atenção!</strong> Não foi possível identificar o alvo correto ao processar o Extrato de Chamadas.
+									<strong>Atenção!</strong> Não foi possível identificar o alvo correto ao processar o Extrato de Chamadas/Mensagens.
 								</div>
-								<p>A identificação do alvo é fundamental para organizar a lista de chamadas de acordo com o foco específico.</p>
+								<p>A identificação do alvo é fundamental para organizar a lista de chamadas/mensagens de acordo com o foco específico.</p>
 								<p><strong>Selecione qual dos telefones ou IMEI's é o alvo correto:</strong></p>
 								
 								<label v-for="target in possibleTargetList" :key="target" class="border bg-body-tertiary p-2 mb-1 rounded w-100">
@@ -114,7 +114,7 @@
 				<div id="navbarToggleExternalContent" class="menu collapse show overflow-auto shadow z-1" v-if="target">
 					<div class="d-flex flex-column h-100">
 						<h4 class="p-3 border-bottom bg-body-secondary mb-0">
-							Extrato de Chamadas
+							Extrato de Chamadas/Mensagens
 						</h4>
 						<div class="px-3 py-2">
 							<div class="d-flex my-3">
@@ -127,7 +127,7 @@
 									</h5>
 
 									<ul class="list-unstyled mb-0">
-										<li><strong>{{ this.rawCallList.length }}</strong> registros de chamada</li>
+										<li><strong>{{ this.rawCallList.length }}</strong> registros de chamadas/mensagens</li>
 										<li>De <strong>{{ formatDate(this.targetCallList[0].timestamp, "DD/MM/YYYY") }}</strong> a <strong>{{ formatDate(this.targetCallList[this.targetCallList.length-1].timestamp, "DD/MM/YYYY") }}</strong></li>
 									</ul>
 								</div>

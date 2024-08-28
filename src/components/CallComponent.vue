@@ -8,6 +8,8 @@
                 <i v-if="formatedCall.description == 'incoming call completed'" class="bi bi-telephone-inbound text-danger" title="Chamada Recebida (completada)"></i>
                 <i v-if="formatedCall.description == 'outgoing call not-completed'" class="bi bi-telephone-x text-success" title="Chamada Efetuada (Não completada)"></i>
                 <i v-if="formatedCall.description == 'incoming call not-completed'" class="bi bi-telephone-x text-danger" title="Chamada Recebida (Não completada)"></i>
+                <i v-if="formatedCall.description == 'outgoing message undefined'" class="bi bi-envelope-arrow-up text-muted" title="Mensagem Enviada"></i>
+                <i v-if="formatedCall.description == 'incoming message undefined'" class="bi bi-envelope-arrow-down text-muted" title="Mensagem Recebida"></i>
                 <i v-if="formatedCall.description == 'outgoing message delivered'" class="bi bi-envelope-arrow-up text-success" title="Mensagem Enviada"></i>
                 <i v-if="formatedCall.description == 'incoming message delivered'" class="bi bi-envelope-arrow-down text-danger" title="Mensagem Recebida"></i>
             </div>

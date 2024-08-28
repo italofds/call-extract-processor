@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 const moment = require('moment');
 const XLSX = require('xlsx');
 
@@ -7,7 +5,8 @@ const typeMapping = {
     "Voz": "voice",
     "CHAMADA": "voice",
     "SMS": "message",
-    "TORP.": "message",    
+    "TORP.": "message",
+    "MENSAGEM": "message"
 };
 
 const statusMapping = {
@@ -41,82 +40,114 @@ export function fileProcess(fileContent) {
 }
 
 function processTim(workbook) {
-    const aba1 = workbook.Sheets[workbook.SheetNames[1]];
-    const aba2 = workbook.Sheets[workbook.SheetNames[4]];
+    const messageTab = workbook.Sheets["Extrato SMS"];
+    const callTab = workbook.Sheets["Extrato Voz"];
+    const erbTab = workbook.Sheets["Dados de Antena"];
+    var jsonRecords;
+    var jsonERBs;
     
-    var jsonCalls = XLSX.utils.sheet_to_json(aba1, { range: 0 });
-    jsonCalls = jsonCalls.slice(0, jsonCalls.length - 1);
-    jsonCalls = jsonCalls.map(obj => 
-        Object.fromEntries(
-            Object.entries(obj).map(([key, value]) => [key, value === "." ? "" : value])
-        )
-    );    
+    if(callTab) {
+        jsonRecords = clearVivoJSON(XLSX.utils.sheet_to_json(callTab));
+   
+    } else if (messageTab) {
+        jsonRecords = clearVivoJSON(XLSX.utils.sheet_to_json(messageTab));
+    }    
 
-    var jsonERBs = XLSX.utils.sheet_to_json(aba2, { range: 0 });
-    jsonERBs = jsonERBs.slice(0, jsonERBs.length - 1);
-    jsonERBs = jsonERBs.map(obj => 
-        Object.fromEntries(
-            Object.entries(obj).map(([key, value]) => [key, value === "." ? "" : value])
-        )
-    );    
+    jsonERBs = clearVivoJSON(XLSX.utils.sheet_to_json(erbTab));
 
-    const resultObj = jsonCalls.map(function(e) {
-        const originalType = e["TIPO"].trim();
-        const finalType = typeMapping[originalType] || "undefined";
+    const resultObj = jsonRecords.map(function(e) {
+        var finalType;
+        var finalStatus;
+        var finalTimestamp;
+        var finalDuration;
+        var finalTelOut;
+        var finalImeiOut;
+        var finalTelIn;
+        var finalImeiIn;
+        var finalLocation1;
+        var finalLocation2;
+
+        if (e["TIPO"]) {
+            finalType = typeMapping[e["TIPO"].trim()] || "undefined";
+        }        
 
         // TIM's extraction don't have STATUS definition
-        const finalStatus = "undefined";
+        finalStatus = "undefined";
 
-        const dateTimeString = `${e["HORA LOCAL"].trim()}`;
-        const finalTimestamp = moment.utc(dateTimeString, "DD/MM/YYYY HH:mm:ss").toISOString();
-
-        const originalLocation1 = e["PRIMEIRA CGI/ERB"].trim();
-        if(originalLocation1) {
-            const location1Obj = jsonERBs.find(jsonERB => {
-                return jsonERB["CGI/ERB"].trim() === originalLocation1;
-            });
-            if(location1Obj) {            
-                var finalLocation1 = {
-                    lat: parseFloat(String(location1Obj["LATITUDE"]).replace(/,/g, '.')),
-                    lng: parseFloat(String(location1Obj["LONGITUDE"]).replace(/,/g, '.')),
-                    azimuth: parseInt(String(location1Obj["AZIMUTE"]).slice(0, -1))
-                };
-            }
+        if (e["HORA LOCAL"]) {
+            finalTimestamp = moment.utc(e["HORA LOCAL"].trim(), "DD/MM/YYYY HH:mm:ss").toISOString();
+        } 
+        
+        if (e["DURAÇÃO"]) {
+            finalDuration = e["DURAÇÃO"].trim();
         }
 
-        const originalLocation2 = e["ÚLTIMA CGI/ERB"].trim();
-        if(originalLocation2) {
-            const location2Obj = jsonERBs.find(jsonERB => {
-                return jsonERB["CGI/ERB"].trim() === originalLocation2;
-            });
-            if(location2Obj) {            
-                var finalLocation2 = {
-                    lat: parseFloat(String(location2Obj["LATITUDE"]).replace(/,/g, '.')),
-                    lng: parseFloat(String(location2Obj["LONGITUDE"]).replace(/,/g, '.')),
-                    azimuth: parseInt(String(location2Obj["AZIMUTE"]).slice(0, -1))
-                };
-            }
+        if (e["Nº ORIGEM"]) {
+            finalTelOut = formatTelNumber(e["Nº ORIGEM"].trim());
         }
 
-        const imeiOut = `${e["IMEI ORIGEM"].trim()}`;
-        const imeiIn = `${e["IMEI DESTINO"].trim()}`;
-        if(imeiOut) {
-            var locationArrayOut = [finalLocation1, finalLocation2].filter(Boolean);
+        if(e["IMEI ORIGEM"]) {
+            finalImeiOut = e["IMEI ORIGEM"].trim();
+        }
 
-        } else if (imeiIn) {
-            var locationArrayIn = [finalLocation1, finalLocation2].filter(Boolean);
+        if (e["Nº DESTINO"]) {
+            finalTelIn = formatTelNumber(e["Nº DESTINO"].trim());
+        }
+
+        if(e["IMEI DESTINO"]) {
+            finalImeiIn = e["IMEI DESTINO"].trim();
+        }
+
+        if (e["PRIMEIRA CGI/ERB"] && jsonERBs) {
+            const originalLocation1 = e["PRIMEIRA CGI/ERB"].trim();
+            if(originalLocation1) {
+                const location1Obj = jsonERBs.find(jsonERB => {
+                    return jsonERB["CGI/ERB"].trim() === originalLocation1;
+                });
+                if(location1Obj) {            
+                    finalLocation1 = {
+                        lat: parseFloat(String(location1Obj["LATITUDE"]).replace(/,/g, '.')),
+                        lng: parseFloat(String(location1Obj["LONGITUDE"]).replace(/,/g, '.')),
+                        azimuth: parseInt(String(location1Obj["AZIMUTE"]).slice(0, -1))
+                    };
+                }
+            }
+        }        
+
+        if(e["ÚLTIMA CGI/ERB"] && jsonERBs) {
+            const originalLocation2 = e["ÚLTIMA CGI/ERB"].trim();
+            if(originalLocation2) {
+                const location2Obj = jsonERBs.find(jsonERB => {
+                    return jsonERB["CGI/ERB"].trim() === originalLocation2;
+                });
+                if(location2Obj) {            
+                    finalLocation2 = {
+                        lat: parseFloat(String(location2Obj["LATITUDE"]).replace(/,/g, '.')),
+                        lng: parseFloat(String(location2Obj["LONGITUDE"]).replace(/,/g, '.')),
+                        azimuth: parseInt(String(location2Obj["AZIMUTE"]).slice(0, -1))
+                    };
+                }
+            }
+        }
+       
+        var locationArrayOut;
+        var locationArrayIn;
+        if(e["IMEI ORIGEM"]) {
+            locationArrayOut = [finalLocation1, finalLocation2].filter(Boolean);
+        } else if (e["IMEI DESTINO"]) {
+            locationArrayIn = [finalLocation1, finalLocation2].filter(Boolean);
         }
         
         return {
             type: finalType,
             status: finalStatus,
             timestamp: finalTimestamp,
-            duration: e["DURAÇÃO"],
-            telOut: formatTelNumber(e["Nº ORIGEM"]),
-            imeiOut: imeiOut,
+            duration: finalDuration,
+            telOut: finalTelOut,
+            imeiOut: finalImeiOut,
             locationOut: locationArrayOut,
-            telIn: formatTelNumber(e["Nº DESTINO"]),
-            imeiIn: imeiIn,
+            telIn: finalTelIn,
+            imeiIn: finalImeiIn,
             locationIn: locationArrayIn
         }
     });
@@ -125,12 +156,12 @@ function processTim(workbook) {
 }
 
 function processVivo(workbook) {
-    const aba1 = workbook.Sheets[workbook.SheetNames[0]];
-    const aba2 = workbook.Sheets[workbook.SheetNames[2]];
-    const jsonCalls = XLSX.utils.sheet_to_json(aba1, { range: 5 });
-    const jsonERBs = XLSX.utils.sheet_to_json(aba2, { range: 5 });
+    const callTab = workbook.Sheets[workbook.SheetNames[0]];
+    const erbTab = workbook.Sheets[workbook.SheetNames[2]];
+    const jsonRecords = XLSX.utils.sheet_to_json(callTab, { range: 5 });
+    const jsonERBs = XLSX.utils.sheet_to_json(erbTab, { range: 5 });
 
-    const resultObj = jsonCalls.map(function(e) {
+    const resultObj = jsonRecords.map(function(e) {
         const originalType = e["Tra"].trim();
         const finalType = typeMapping[originalType] || "undefined";
 
@@ -215,5 +246,14 @@ function formatTelNumber(value) {
     } else {
         return value;
     }
+}
+
+function clearVivoJSON(json) {
+    json = json.slice(0, json.length - 1); //remove footer / last item
+    return json.map(obj => 
+        Object.fromEntries(
+            Object.entries(obj).map(([key, value]) => [key, value === "." ? "" : value]) // Replace empty values "." for whitespace
+        )
+    );
 }
   
