@@ -140,10 +140,11 @@ export default {
 							var center = { lat: location.lat, lng: location.lng };
 							var startAngle = location.azimuth - AZIMUTH_ANGLE / 2;
 							var endAngle = location.azimuth + AZIMUTH_ANGLE / 2;
+							var radius = location.radius || AZIMUTH_RADIUS;
 
 							var path = [center];
 							for (var i = startAngle; i <= endAngle; i += 5) {
-								var point = window.google.maps.geometry.spherical.computeOffset(center, AZIMUTH_RADIUS, i);
+								var point = window.google.maps.geometry.spherical.computeOffset(center, radius, i);
 								path.push(point);								
 							}
 							resultList.push(path);
@@ -228,9 +229,10 @@ export default {
 			this.erbList.forEach(erbLocation => {
 				var obj = {};
 				obj.location = new window.google.maps.LatLng(erbLocation.lat, erbLocation.lng);
-				obj.weight = erbLocation.lat.count;
+				obj.weight = erbLocation.count;
 				heatmapList.push(obj);
-			});			
+			});		
+			console.log(heatmapList);	
 			return heatmapList; 
 		},
 		targetAzimuthList() {
@@ -256,10 +258,11 @@ export default {
 					var center = { lat: location.lat, lng: location.lng };
 					var startAngle = location.azimuth - AZIMUTH_ANGLE / 2;
 					var endAngle = location.azimuth + AZIMUTH_ANGLE / 2;
+					var radius = location.radius || AZIMUTH_RADIUS;
 
 					var path = [center];
 					for (var i = startAngle; i <= endAngle; i += 5) {
-						var point = window.google.maps.geometry.spherical.computeOffset(center, AZIMUTH_RADIUS, i);
+						var point = window.google.maps.geometry.spherical.computeOffset(center, radius, i);
 						path.push(point);
 						azimuthBoundsList.push({ lat: point.lat(), lng: point.lng() });						
 					}

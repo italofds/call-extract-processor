@@ -1,4 +1,4 @@
-const moment = require('moment');
+const moment = require('moment-timezone');
 const XLSX = require('xlsx');
 
 const typeMapping = {
@@ -12,7 +12,9 @@ const typeMapping = {
 const statusMapping = {
     "Completada": "completed",
     "Nao Compl.": "not-completed",
-    "Entregue": "delivered"
+    "Entregue": "delivered",
+    "C": "completed",
+    "NC": "not-completed"
 };
 
 export function fileProcess(fileContent) {
@@ -22,21 +24,108 @@ export function fileProcess(fileContent) {
 
     //Check if it's VIVO's spreadsheet
     if (workbook.SheetNames[0].trim() === "Relatório de chamadas") {
-        console.log("VIVO");
         return processVivo(workbook);
     
     //Check if it's TIM's spreadsheet
     } else if (workbook.SheetNames[0].trim() === "Dados de Pesquisa") {
-        console.log("TIM");
         return processTim(workbook);
 
     //Check if it's CLARO's spreadsheet
-    } else if (workbook.SheetNames[0].trim() === "Sheet0") {
-        console.log("CLARO");
+    } else if (workbook.SheetNames[0].trim() === "Resultado") {
+        return processClaro(workbook);
     
     } else {
         alert("Não foi possível reconhecer o formato do extrato de chamadas informado. Tente novamente utilizando outra planilha.");
     } 
+}
+
+function processClaro(workbook) {   
+    const recordsTab = workbook.Sheets["Resultado"];
+    var jsonRecords = XLSX.utils.sheet_to_json(recordsTab);
+
+    const resultObj = jsonRecords.map(function(e) {
+        var finalType;
+        var finalStatus;
+        var finalTimestamp;
+        var finalDuration;
+        var finalTelOut;
+        var finalImeiOut;
+        var locationOut;
+        var finalTelIn;
+        var finalImeiIn;
+        var locationIn;
+
+        // CLARO's extraction don't have TYPE definition
+        finalType = "voice";     
+
+        if (e["STATUS"]) {
+            finalStatus = statusMapping[e["STATUS"].trim()] || "undefined";
+        }
+
+        if (e["DATA_INICIO"] && e["HORA_INICIO"] && e["GMT"]) {
+            const date = e["DATA_INICIO"].trim();
+            const time = e["HORA_INICIO"].trim();
+            const gmt = e["GMT"].trim();
+            const formattedDate = `${date.substring(4, 8)}-${date.substring(2, 4)}-${date.substring(0, 2)}`;
+            const formattedTime = `${time.substring(0, 2)}:${time.substring(2, 4)}:${time.substring(4, 6)}`;
+            finalTimestamp = moment.tz(`${formattedDate}T${formattedTime}`, `Etc/GMT${gmt}`).toISOString();
+        } 
+        
+        if (e["DURACAO"]) {
+            finalDuration = parseInt(e["DURACAO"].trim());
+        }
+
+        if (e["NUMERO_A"]) {
+            finalTelOut = formatTelNumber(e["NUMERO_A"].trim());
+        }
+
+        if(e["IMEI_A"]) {
+            finalImeiOut = e["IMEI_A"].trim();
+        }
+
+        if (e["NUMERO_C"]) {
+            finalTelIn = formatTelNumber(e["NUMERO_C"].trim());
+        } else if (e["NUMERO_B"]) {
+            finalTelIn = formatTelNumber(e["NUMERO_B"].trim());
+        }
+
+        if(e["IMEI_B"]) {
+            finalImeiIn = e["IMEI_B"].trim();
+        }
+
+        if(e["LATITUDE_RE"] && e["LONGITUDE_RE"] && e["AZIMUTE_RE"] && e["RAIO_RE"]) {
+            locationOut = [{
+                lat: parseFloat(String(e["LATITUDE_RE"]).replace(/,/g, '.')),
+                lng: parseFloat(String(e["LONGITUDE_RE"]).replace(/,/g, '.')),
+                azimuth: parseInt(e["AZIMUTE_RE"]),
+                radius: parseInt(e["RAIO_RE"])
+            }];
+        }
+
+        if(e["LATITUDE_RS"] && e["LONGITUDE_RS"] && e["AZIMUTE_RS"] && e["RAIO_RS"]) {
+            locationIn = [{
+                lat: parseFloat(String(e["LATITUDE_RS"]).replace(/,/g, '.')),
+                lng: parseFloat(String(e["LONGITUDE_RS"]).replace(/,/g, '.')),
+                azimuth: parseInt(e["AZIMUTE_RS"]),
+                radius: parseInt(e["RAIO_RS"])
+            }];
+        }
+        
+        return {
+            type: finalType,
+            status: finalStatus,
+            timestamp: finalTimestamp,
+            duration: finalDuration,
+            telOut: finalTelOut,
+            imeiOut: finalImeiOut,
+            locationOut: locationOut,
+            telIn: finalTelIn,
+            imeiIn: finalImeiIn,
+            locationIn: locationIn
+        }
+    });
+
+    return {company: 'claro', list: resultObj};
 }
 
 function processTim(workbook) {
