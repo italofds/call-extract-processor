@@ -4,7 +4,7 @@
             <h4 class="my-0 fw-normal">{{ this.title}}</h4>
         </div>
         <div class="card-body">
-            <canvas ref="canvas" style=""></canvas>
+            <canvas ref="canvas" style="min-height: 400px;"></canvas>
         </div>
     </div>
 </template>
@@ -58,14 +58,9 @@ export default {
                 type: this.type,
                 data: this.data,
                 options: {
-                    plugins: {
-                        legend: {
-                            position: "right"
-                        }
-                    }
+                    maintainAspectRatio: false
                 }
             });          
-            
             this.chart = markRaw(chartObj);
         }
     },

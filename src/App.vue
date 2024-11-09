@@ -136,76 +136,84 @@
 
 						<ul class="nav nav-tabs mx-3">
 							<li class="nav-item">
-								<button class="nav-link active" data-bs-toggle="tab" data-bs-target="#list-tab-pane" type="button" role="tab" aria-controls="list-tab-pane" aria-selected="true">Lista</button>
+								<button class="nav-link active" data-bs-toggle="tab" data-bs-target="#list-tab-pane" type="button" role="tab" aria-controls="list-tab-pane" aria-selected="true" @click="openList">Lista</button>
 							</li>
 							<li class="nav-item">
-								<button class="nav-link" data-bs-toggle="tab" data-bs-target="#chart-tab-pane" type="button" role="tab" aria-controls="chart-tab-pane" aria-selected="false">Gráficos</button>
+								<button class="nav-link" data-bs-toggle="tab" data-bs-target="#chart-tab-pane" type="button" role="tab" aria-controls="chart-tab-pane" aria-selected="false" @click="openChart">Gráficos</button>
 							</li>
 						</ul>
 
 						<div class="tab-content flex-fill">
-							<div class="tab-pane fade show active d-flex flex-column h-100" id="list-tab-pane" role="tabpanel" aria-labelledby="list-tab" tabindex="0">
-								<div class="px-3 py-2 border-bottom shadow-sm z-2">
-									<label class="form-label">Exibindo {{ filteredCallList.length }} de {{ targetCallList.length }} registros</label>
-									
-									<div class="row row-cols-lg-auto g-3 mb-3">
-										<div class="col-12 d-grid d-lg-block">
-											<div class="btn-group" role="group">
-												<button type="button" class="btn btn-outline-secondary position-relative" :disabled="!isFilterDefined" @click="this.$refs.filter.clear()">
-													Limpar Filtros
+							<div class="tab-pane fade show active h-100" id="list-tab-pane" role="tabpanel" aria-labelledby="list-tab" tabindex="0">
+								<div class=" d-flex flex-column h-100">
+									<div class="px-3 py-2 border-bottom shadow-sm z-2">
+										<label class="form-label">Exibindo {{ filteredCallList.length }} de {{ targetCallList.length }} registros</label>
+										
+										<div class="row row-cols-lg-auto g-3 mb-3">
+											<div class="col-12 d-grid d-lg-block">
+												<div class="btn-group" role="group">
+													<button type="button" class="btn btn-outline-secondary position-relative" :disabled="!isFilterDefined" @click="this.$refs.filter.clear()">
+														Limpar Filtros
+													</button>
+													<button type="button" class="btn btn-outline-secondary position-relative" data-bs-toggle="modal" data-bs-target="#filterModal">
+														Filtrar
+														<span v-if="isFilterDefined" class="position-absolute top-0 start-100 translate-middle p-2 bg-primary border border-light rounded-circle">
+															<span class="visually-hidden">Alert</span>
+														</span>
+													</button>
+												</div>										
+											</div>
+											
+											<div class="col-12 d-grid d-lg-block dropdown">
+												<button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+													Mais Opções
 												</button>
-												<button type="button" class="btn btn-outline-secondary position-relative" data-bs-toggle="modal" data-bs-target="#filterModal">
-													Filtrar
-													<span v-if="isFilterDefined" class="position-absolute top-0 start-100 translate-middle p-2 bg-primary border border-light rounded-circle">
-														<span class="visually-hidden">Alert</span>
-													</span>
-												</button>
-											</div>										
+												<ul class="dropdown-menu z-3">
+													<li><button type="button" class="dropdown-item" @click="toggleLocationVisibility('target')">{{isTargetLocationVisible ? 'Ocultar' : 'Exibir'}} Todos Alvos</button></li>
+													<li><button type="button" class="dropdown-item" @click="toggleLocationVisibility('interlocutor')">{{isInterlocutorLocationVisible ? 'Ocultar' : 'Exibir'}} Todos Interlocutor</button></li>
+													<li><button type="button" class="dropdown-item" @click="this.$refs.map.toggleHeatmap()">{{this.$refs.map.isHeatmapVisible ? 'Ocultar' : 'Exibir'}} Mapa de Calor</button></li>
+												</ul>
+											</div>
 										</div>
-
-										<div class="col-12 d-grid d-lg-block dropdown">
-											<button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-												Mais Opções
-											</button>
-											<ul class="dropdown-menu z-3">
-												<li><button type="button" class="dropdown-item" @click="toggleLocationVisibility('target')">{{isTargetLocationVisible ? 'Ocultar' : 'Exibir'}} Todos Alvos</button></li>
-												<li><button type="button" class="dropdown-item" @click="toggleLocationVisibility('interlocutor')">{{isInterlocutorLocationVisible ? 'Ocultar' : 'Exibir'}} Todos Interlocutor</button></li>
-												<li><button type="button" class="dropdown-item" @click="this.$refs.map.toggleHeatmap()">{{this.$refs.map.isHeatmapVisible ? 'Ocultar' : 'Exibir'}} Mapa de Calor</button></li>
-											</ul>
+									</div>							
+									
+									<div id="call-list" class="flex-fill overflow-auto p-3 bg-body-tertiary z-1" style="height: 0;">
+										<section :id="'group' + index1" v-for="(callGroup, index1) in dateCallList" :key="index1">
+											<div class="mb-3 d-flex justify-content-center position-sticky z-3" style="top:0;">
+												<small class="badge rounded-pill text-bg-secondary opacity-75">
+													{{formatDate(callGroup.date, "dddd, DD [de] MMMM [de] YYYY") }}
+												</small>
+											</div>
+											
+											<div class="list-group mb-3">
+													<call-component v-for="(call) in callGroup.calls" 
+													:id="`call${call.index}`"
+													:key="call.index"
+													:formated-call="call"
+													:raw-call="targetCallList[call.index]"
+													@azimuth-focused="setAzimuthFocus">
+												</call-component>
+											</div>
+										</section>
+									
+										<div v-if="!filteredCallList || filteredCallList.length == 0" class="w-100 h-100 d-flex align-items-center justify-content-center">
+											<div class="d-flex flex-column align-items-center">
+												<i class="bi bi-exclamation-triangle-fill h1 text-secondary"></i>
+												<small class="text-muted">Não foram encontrados registros para os filtros informados.</small>
+											</div>								
 										</div>
 									</div>
 								</div>							
-
-								<div id="call-list" class="flex-fill overflow-auto p-3 bg-body-tertiary z-1" style="height: 0;">
-									<section :id="'group' + index1" v-for="(callGroup, index1) in dateCallList" :key="index1">
-										<div class="mb-3 d-flex justify-content-center position-sticky z-3" style="top:0;">
-											<small class="badge rounded-pill text-bg-secondary opacity-75">
-												{{formatDate(callGroup.date, "dddd, DD [de] MMMM [de] YYYY") }}
-											</small>
-										</div>
-
-										<div class="list-group mb-3">
-											<call-component v-for="(call) in callGroup.calls" 
-												:id="`call${call.index}`"
-												:key="call.index"
-												:formated-call="call"
-												:raw-call="targetCallList[call.index]"
-												@azimuth-focused="setAzimuthFocus">
-											</call-component>
-										</div>
-									</section>
-									
-									<div v-if="!filteredCallList || filteredCallList.length == 0" class="w-100 h-100 d-flex align-items-center justify-content-center">
-										<div class="d-flex flex-column align-items-center">
-											<i class="bi bi-exclamation-triangle-fill h1 text-secondary"></i>
-											<small class="text-muted">Não foram encontrados registros para os filtros informados.</small>
-										</div>								
-									</div>
-								</div>
 							</div>
 
-							<div class="tab-pane fade" id="chart-tab-pane" role="tabpanel" aria-labelledby="chart-tab" tabindex="1">
-								<!-- <chart-component :data="graphData.telCounts" :title="'Quantidade de Registros'" :type="'line'"></chart-component> -->
+							<div class="tab-pane fade h-100" id="chart-tab-pane" role="tabpanel" aria-labelledby="chart-tab" tabindex="1">
+								<div class=" d-flex flex-column h-100">
+									<div class="px-3 py-2 border-bottom shadow-sm z-2"></div>
+									<div id="chart-list" class="flex-fill overflow-auto bg-body-tertiary p-3 z-1" style="height: 0;">
+										<chart-component :data="graphData.dataChart1" :title="'Intelocutores com mais registros'" :type="'bar'"></chart-component>
+										<chart-component :data="graphData.dataChart2" :title="'Intelocutores com mais tempo de chamada'" :type="'bar'"></chart-component>
+									</div>
+								</div>						
 							</div>
 						</div>
 					</div>
@@ -228,14 +236,14 @@ import { formatDate, formatPhoneNumber } from '@/utils/utils.js';
 import CallComponent from './components/CallComponent.vue';
 import FilterComponent from './components/FilterComponent.vue';
 import MapComponent from './components/MapComponent.vue';
-/* import ChartComponent from './components/ChartComponent.vue'; */
+import ChartComponent from './components/ChartComponent.vue';
 
 export default {
 	components: {
 		CallComponent,
 		FilterComponent,
 		MapComponent,
-		/* ChartComponent */
+		ChartComponent
 	},
 	name: 'App',
 	data() {
@@ -267,8 +275,8 @@ export default {
 				},
 			},
 			graphData: {
-				telCounts: null,
-				imeiCounts: null
+				dataChart1: null,
+				dataChart2: null
 			}
 		};
 	},
@@ -299,6 +307,61 @@ export default {
 			}
 		},
 		createGraphData() {
+			//////////////////////////////////////////////////////////////////////////////////////////////////
+			/////////////////////////////////////////// CHART 1 //////////////////////////////////////////////
+			//////////////////////////////////////////////////////////////////////////////////////////////////
+			let telCountsObj = {};
+			this.rawCallList.forEach(call => {
+				[call.telIn, call.telOut].forEach(tel => {
+					if (tel) {
+						telCountsObj[tel] = (telCountsObj[tel] || 0) + 1;
+					}
+				});
+			});
+
+			let telCounts = Object.entries(telCountsObj).map(([tel, count]) => ({tel, count })).sort((a, b) => b.count - a.count);
+			telCounts = telCounts.slice(1, 11);
+
+			this.graphData.dataChart1 = {
+				labels: telCounts.map(row => formatPhoneNumber(row.tel)),
+				datasets: [
+					{
+						label: 'Registros',
+						data: telCounts.map(row => row.count)
+					}
+				]
+			}
+
+			//////////////////////////////////////////////////////////////////////////////////////////////////
+			/////////////////////////////////////////// CHART 2 //////////////////////////////////////////////
+			//////////////////////////////////////////////////////////////////////////////////////////////////
+			let timeCountsObj = {};
+			this.rawCallList.forEach(call => {
+				if(call.duration) {
+					if (call.telIn) {
+						timeCountsObj[call.telIn] = (timeCountsObj[call.telIn] || 0) + parseInt(call.duration);
+					}
+					if (call.telOut) {
+						timeCountsObj[call.telOut] = (timeCountsObj[call.telOut] || 0) + parseInt(call.duration);
+					}
+				}
+				
+			});
+
+			let timeCounts = Object.entries(timeCountsObj).map(([tel, time]) => ({tel, time })).sort((a, b) => b.time - a.time);
+			timeCounts = timeCounts.slice(1, 11);
+
+			this.graphData.dataChart2 = {
+				labels: timeCounts.map(row => formatPhoneNumber(row.tel)),
+				datasets: [
+					{
+						label: 'Duração (segundos)',
+						data: timeCounts.map(row => row.time)
+					}
+				]
+			}
+		},
+		findTargets() {
 			let telCountsObj = {};
 			let imeiCountsObj = {};
 			
@@ -316,14 +379,13 @@ export default {
 				});
 			});
 			
-			this.graphData.telCounts = Object.entries(telCountsObj).map(([tel, count]) => ({'value': tel, 'type':'tel', count })).sort((a, b) => b.count - a.count);
-			this.graphData.imeiCounts = Object.entries(imeiCountsObj).map(([imei, count]) => ({'value': imei, 'type':'imei', count })).sort((a, b) => b.count - a.count);
-		},
-		findTargets() {
-			var maxCount = this.rawCallList.length;
-			var counts = this.graphData.telCounts.concat(this.graphData.imeiCounts);
+			let telCounts = Object.entries(telCountsObj).map(([tel, count]) => ({'value': tel, 'type':'tel', count })).sort((a, b) => b.count - a.count);
+			let imeiCounts = Object.entries(imeiCountsObj).map(([imei, count]) => ({'value': imei, 'type':'imei', count })).sort((a, b) => b.count - a.count);
+			var counts = telCounts.concat(imeiCounts);
+
+			var maxCount = this.rawCallList.length;			
 			var possibleTargets = counts.filter(function (el) {
-				return el.count == maxCount
+				return el.count >= maxCount
 			});
 
 			if(possibleTargets && possibleTargets.length > 0) {
@@ -431,6 +493,14 @@ export default {
 		},
 		setAzimuthFocus(locations) {
 			this.focusedAzimuth = locations;
+		},
+		openList() {
+			const navbarToggleContent = document.getElementById('navbarToggleExternalContent');
+			navbarToggleContent.classList.remove("expanded");
+		},
+		openChart() {
+			const navbarToggleContent = document.getElementById('navbarToggleExternalContent');
+			navbarToggleContent.classList.add("expanded");
 		}
 	},
 	computed: {
@@ -510,13 +580,20 @@ export default {
 		backdrop-filter: blur(10px);
 	}
 
-	.menu {
+	.menu, .menu.expanded {
 		min-width: 100%;
+		transition: min-width 0.5s ease;
 	}
 
 	@media (min-width: 576px) {
 		.menu {
 			min-width: 576px;
+		}
+	}
+
+	@media (min-width: 992px) {
+		.menu.expanded {
+			min-width: 992px;
 		}
 	}
 

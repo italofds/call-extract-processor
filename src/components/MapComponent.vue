@@ -10,10 +10,18 @@
 					</div>
 				</GMapInfoWindow>
 			</GMapMarker>
-		</div>		
-		<GMapPolygon v-if="!isHeatmapVisible" :paths="targetAzimuthList" :options="targetOptions"/>
-		<GMapPolygon v-if="!isHeatmapVisible" :paths="interlocutorAzimuthList" :options="interlocutorOptions"/>
-		<GMapPolygon v-if="!isHeatmapVisible" :paths="focusAzimuthList" :options="focusedOptions"/>
+
+			<!-- <GMapPolyline v-for="(azimuth, index) in targetAzimuthList" :key="index" :path="azimuth" :options="polylineOptions"/>
+			<GMapPolyline v-for="(azimuth, index) in interlocutorAzimuthList" :key="index" :path="azimuth" :options="polylineOptions"/> -->
+
+			<GMapPolyline v-for="(center, index) in targetCenterList" :key="index" :path="center" :options="centerLineOptions"/>
+			<GMapPolyline v-for="(center, index) in interlocutorCenterList" :key="index" :path="center" :options="centerLineOptions"/>
+			
+			<GMapPolygon :paths="interlocutorAzimuthList" :options="interlocutorOptions"/>
+			<GMapPolygon :paths="targetAzimuthList" :options="targetOptions"/>
+			<GMapPolygon :paths="focusAzimuthList" :options="focusedOptions"/>
+		</div>	
+		
 		<GMapHeatmap v-if="isHeatmapVisible" :data="heatmapList" :options="heatmapOptions"></GMapHeatmap>
 	</GMapMap>
 </template>
@@ -66,17 +74,39 @@ export default {
 					position: 7
 				},
 			},
+			pathTest: [
+				{ lat: 22.291, lng: 153.027 },
+				{ lat: 18.291, lng: 153.027 },
+			],
+			centerLineOptions: {
+				strokeColor: "#ff0000",
+				strokeWeight: 1,
+				strokeOpacity: 0.5
+			},
+			/* polylineOptions: {
+				strokeColor: "#78909C",
+				strokeOpacity: 0,
+				icons: [
+					{
+						icon: {
+							path: "M 0,-1 0,1",
+							strokeOpacity: 1,
+							scale: 4,
+						},
+						offset: "0",
+						repeat: "20px",
+					},
+				],
+			}, */
 			targetOptions: {
 				strokeColor: "#78909C",
-				strokeOpacity: 0.8,
-				strokeWeight: 0.25,
+				strokeWeight: 1,
 				fillColor: "#0d6efd",
 				fillOpacity: 0.35
 			},
 			interlocutorOptions: {
 				strokeColor: "#78909C",
-				strokeOpacity: 0.8,
-				strokeWeight: 0.25,
+				strokeWeight: 1,
 				fillColor: "#ffc107",
 				fillOpacity: 0.35
 			},
@@ -130,6 +160,28 @@ export default {
 		}
 	},
     methods: {
+		getCenterPaths(locationAttr) {
+			if(this.filteredCallList) {
+				const resultList = [];			
+				this.filteredCallList.forEach(filteredCall => {
+					const originalCall = this.originalCallList[filteredCall.index];
+					if(originalCall[locationAttr].isVisible && originalCall[locationAttr].locations) {
+						originalCall[locationAttr].locations.forEach(location => {
+							var center = { lat: location.lat, lng: location.lng };
+							var radius = location.radius || AZIMUTH_RADIUS;
+							var centerPoint = window.google.maps.geometry.spherical.computeOffset(center, radius, location.azimuth);
+
+							var path = [center];							
+							path.push(centerPoint);
+
+							resultList.push(path);
+						});
+					}
+				});					
+				return resultList;
+			}
+			return [];			
+		},
 		getAzimuthPaths(locationAttr) {
 			if(this.filteredCallList) {
 				const resultList = [];			
@@ -147,6 +199,7 @@ export default {
 								var point = window.google.maps.geometry.spherical.computeOffset(center, radius, i);
 								path.push(point);								
 							}
+							path.push(center);
 							resultList.push(path);
 						});
 					}
@@ -234,6 +287,12 @@ export default {
 			});		
 			console.log(heatmapList);	
 			return heatmapList; 
+		},
+		targetCenterList() {
+			return this.getCenterPaths("target");
+		},
+		interlocutorCenterList() {
+			return this.getCenterPaths("interlocutor");
 		},
 		targetAzimuthList() {
 			return this.getAzimuthPaths("target");
