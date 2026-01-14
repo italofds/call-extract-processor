@@ -397,8 +397,10 @@ export default {
 				}
 
 			} else {
-				alert("Ocorreu um erro ao buscar os alvos.");
-			}	
+				this.target = {'value':'','type':''};
+				this.createTargetCallList();
+			}
+
 		},
 		createTargetCallList() {
 			const groupedCallList = [];
@@ -412,7 +414,39 @@ export default {
 				newCallObj.timestamp = call.timestamp;
 				newCallObj.duration = call.duration;
 
-				if(call.telOut == this.target.value || call.imeiOut == this.target.value) {
+				if(this.target?.value) {
+					if(call.telOut == this.target?.value || call.imeiOut == this.target?.value) {
+						newCallObj.description = `outgoing ${call.type=='voice'?'call':call.type} ${call.status}`;
+						newCallObj.target = {
+							isVisible: true,
+							tel: call.telOut,
+							imei: call.imeiOut,
+							locations: call.locationOut
+						}
+						newCallObj.interlocutor = {
+							isVisible: true,
+							tel: call.telIn,
+							imei: call.imeiIn,
+							locations: call.locationIn
+						}						
+
+					} else if (call.telIn == this.target?.value || call.imeiIn == this.target?.value) {
+						newCallObj.description = `incoming ${call.type=='voice'?'call':call.type} ${call.status}`;
+						newCallObj.target = {
+							isVisible: true,
+							tel: call.telIn,
+							imei: call.imeiIn,
+							locations: call.locationIn
+						}
+						newCallObj.interlocutor = {
+							isVisible: true,
+							tel: call.telOut,
+							imei: call.imeiOut,
+							locations: call.locationOut
+						}	
+					}
+
+				} else {
 					newCallObj.description = `outgoing ${call.type=='voice'?'call':call.type} ${call.status}`;
 					newCallObj.target = {
 						isVisible: true,
@@ -425,22 +459,7 @@ export default {
 						tel: call.telIn,
 						imei: call.imeiIn,
 						locations: call.locationIn
-					}						
-
-				} else if (call.telIn == this.target.value || call.imeiIn == this.target.value) {
-					newCallObj.description = `incoming ${call.type=='voice'?'call':call.type} ${call.status}`;
-					newCallObj.target = {
-						isVisible: true,
-						tel: call.telIn,
-						imei: call.imeiIn,
-						locations: call.locationIn
 					}
-					newCallObj.interlocutor = {
-						isVisible: true,
-						tel: call.telOut,
-						imei: call.imeiOut,
-						locations: call.locationOut
-					}	
 				}
 
 				groupedCallList.push(newCallObj);
